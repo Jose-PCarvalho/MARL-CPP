@@ -1,0 +1,100 @@
+env1:
+  name: "env1_Full_Info_Non_Rand_Size5_Rand_Starting_Pose_Obstacle"
+  base_steps: 2000000
+  number_agents: 4
+  random_number_agents : False
+  sensor: "full information"
+  sensor_range: 3
+  size: 5
+  min_size: 4
+  random_size: false
+  obstacles_random: true
+  number_obstacles: 5
+  starting_position: [0,4]
+  starting_position_corner : false
+  starting_position_random : true
+  map_config : 'empty'
+  random_coverage : false
+  dataset_path: 'empty'
+  load_state: false
+  load_random: false
+env2:
+  name: "env2_Full_Info_Non_Rand_Size10_Rand_Starting_Pose_Obstacle"
+  base_steps: 5000000
+  number_agents: 4
+  random_number_agents : False
+  sensor: "full information"
+  sensor_range: 3
+  size: 10
+  min_size: 5
+  random_size: false
+  obstacles_random: true
+  number_obstacles: 10
+  starting_position: [9,0]
+  starting_position_corner : false
+  starting_position_random : true
+  map_config : 'empty'
+  random_coverage : false
+  dataset_path: 'empty'
+  load_state: false
+  load_random: false
+env3:
+  name: "env3_Full_Info_Non_Rand_Size15_Rand_Starting_Pose_Obstacle"
+  base_steps: 3000000
+  number_agents: 4
+  random_number_agents : False
+  sensor: "full information"
+  sensor_range: 3
+  size: 15
+  min_size: 10
+  random_size: false
+  obstacles_random: true
+  number_obstacles: 20
+  starting_position: [14,0]
+  starting_position_corner : false
+  starting_position_random : true
+  map_config : 'empty'
+  random_coverage : false
+  dataset_path: 'empty'
+  load_state: false
+  load_random: false
+env4:
+  name: "env4_Full_Info_Non_Rand_Size19_Rand_Starting_Pose_Obstacle"
+  base_steps: 5000000
+  number_agents: 4
+  random_number_agents : False
+  sensor: "full information"
+  sensor_range: 3
+  size: 19
+  min_size: 9
+  random_size: false
+  obstacles_random: true
+  number_obstacles: 30
+  starting_position: [19,0]
+  starting_position_corner : false
+  starting_position_random : true
+  map_config : 'empty'
+  random_coverage : false
+  dataset_path: 'empty'
+  load_state: false
+  load_random: false
+env5:
+  name: "env5_Full_Info_Non_Rand_Size25_Rand_Starting_Pose_Obstacle"
+  base_steps: 10000000
+  number_agents: 4
+  random_number_agents : False
+  sensor: "full information"
+  sensor_range: 4
+  size: 25
+  min_size: 15
+  random_size: false
+  obstacles_random: true
+  number_obstacles: 40
+  starting_position: [19,0]
+  starting_position_corner : false
+  starting_position_random : true
+  map_config : 'empty'
+  random_coverage : false
+  dataset_path: 'empty'
+  load_state: false
+  load_random: true
