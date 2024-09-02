@@ -43,8 +43,8 @@ class GridMap:
                     self.obstacle_list.append(t)
 
         else:
-            x = max([start[i].x for i in range(len(start))])
-            y = max([start[i].y for i in range(len(start))])
+            x = max([start[i][0] for i in range(len(start))])
+            y = max([start[i][1] for i in range(len(start))])
             self.height = max(x + 1, y + 1, 2)
             self.width = self.height
         self.map_array = self.graph_to_array()
@@ -322,4 +322,5 @@ def compress_edge(edge, start_i, end_i, begin_offset, end_offset):
         new_edge[:, -2] = end_edge
     if use_begin_edge == 1:
         new_edge[:, 1] = begin_edge
+    new_edge[0,:][new_edge[0, :] > 0] = 255 # I don't remember why I added this
     return new_edge
