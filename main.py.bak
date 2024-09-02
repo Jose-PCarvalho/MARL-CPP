@@ -202,12 +202,6 @@ while e < number_envs + 1:
                 else:
                     action = dqn.act(state[0], state[1],
                                      state[2], state[3])
-                    # ac = env.detect_collision(action)
-                    # if ac is not None:
-                    #     for i, a in enumerate(ac):
-                    #         if a is not None:
-                    #             action[i] = a
-
             else:
                 action = pseudo_agent.select_action(state[0][-1]).value
 
