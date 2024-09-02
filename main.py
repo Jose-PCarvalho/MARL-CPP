@@ -13,9 +13,6 @@ from src.Environment.Environment import *
 from src.Rainbow.agent import *
 from src.Rainbow.memory import ReplayMemory
 from test import test
-from src.Environment.BackAndForth import *
-from src.Environment.WallFollowing import *
-
 
 def log(s, log_dir=None):
     print('[' + str(datetime.now().strftime('%Y-%m-%dT%H:%M:%S')) + '] ' + s)
@@ -33,13 +30,7 @@ def save_memory(memory, memory_path, disable_bzip):
             pickle.dump(memory, zipped_pickle_file)
 
 
-def use_pseudo(ovrl):
-    p = -1.4 * (1 - ovrl) + 0.7
-    eps = np.random.random()
-    if eps < p:
-        return True
-    else:
-        return False
+
 
 
 # Note that hyperparameters may originally be reported in ATARI game frames instead of agent steps
@@ -142,9 +133,7 @@ while e < number_envs + 1:
     args.T_max = conf[env_str]['base_steps']
     env = Environment(EnvironmentParams(conf[env_str]))
     print(conf[env_str])
-    non_obstacles = conf[env_str]['number_obstacles'] == 0
     env_size = conf[env_str]['size']
-    use_pseudo_agent, pseudo_episode = non_obstacles, non_obstacles
     val_mem = ReplayMemory(args, args.evaluation_size)
     all_T += T
     T, done, truncated = 0, True, True
@@ -178,32 +167,23 @@ while e < number_envs + 1:
             if done or truncated:
                 last_truncated = truncated
                 state, info = env.reset()
-                pseudo_episode = False
-                if use_pseudo_agent and avg_overlap > 0.5:
-                    pseudo_episode = use_pseudo(avg_overlap)
-                    if pseudo_episode:
-                        alg = random.choice([BackForth, WallFollower])
-                        pseudo_agent = alg()
-                        pseudo_agent.init(state[0][-1], env.state.params.size)
+
 
             if T % args.replay_frequency == 0:
                 dqn.reset_noise()  # Draw a new set of noisy weights
-
-            if not pseudo_episode:
-                if ((last_truncated and env_size <= 10) or any(info)) and np.random.random() < 0.9:
-                    action = dqn.act(state[0], state[1], state[2], state[3])
-                    if last_truncated and env_size <= 10:
-                        ac = env.get_heuristic_action()
-                    else:
-                        ac = env.get_heuristic_action(info)
-                    for i, a in enumerate(ac):
-                        if a is not None:
-                            action[i] = a
+            if ((last_truncated and env_size <= 10) or any(info)) and np.random.random() < 0.9:
+                action = dqn.act(state[0], state[1], state[2], state[3])
+                if last_truncated and env_size <= 10:
+                    ac = env.get_heuristic_action()
                 else:
-                    action = dqn.act(state[0], state[1],
-                                     state[2], state[3])
+                    ac = env.get_heuristic_action(info)
+                for i, a in enumerate(ac):
+                    if a is not None:
+                        action[i] = a
             else:
-                action = pseudo_agent.select_action(state[0][-1]).value
+                action = dqn.act(state[0], state[1],
+                                 state[2], state[3])
+
 
             next_state, reward, done, truncated, info = env.step(action)  # Step
 
