@@ -35,8 +35,8 @@ class GridRewards:
         return sum(self.cumulative_reward) / len(self.cumulative_reward)
 
     def get_overlap(self):
-        overlap = [self.overlap[i] / self.steps for i in range(self.number_agents)]
-        return sum(overlap) / len(overlap)  # self.overlap / (self.steps - self.overlap + 1)
+        overlap = [self.overlap[i] / (self.steps -self.overlap[i]) for i in range(self.number_agents)]
+        return sum(overlap) / len(overlap)  # self.overlap / (self.steps - self.overlap)
     
     def get_time_save(self):
         return self.steps/self.optimal_steps
@@ -70,7 +70,7 @@ class GridRewards:
                 r[i] += self.params.new_tile_reward
                 self.stuck[i] = 0
             else:
-                # r += self.params.repeated_field_reward  
+                # r += self.params.repeated_field_reward
                 if all(new_closest_cell == self.closest_cell[i]):
                     new_dist = -len(state.local_map.dijkstra_search(state.position[i].get_position(),(new_closest_cell[0],new_closest_cell[1])))
                     old_dist = -len(state.local_map.dijkstra_search(state.position[i].get_position(),(self.closest_cell[i][0],self.closest_cell[i][1])))

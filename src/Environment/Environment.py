@@ -102,22 +102,21 @@ class Environment:
         oob = oob[:, :, :, 0:2]
         return (np.array(self.state.state_array), self.state.t_to_go, np.array(self.state.last_action), oob)
 
-    def get_info(self):
-        small_stuck = [self.rewards.stuck[i] > 5 for i in range(self.params.number_agents)]
+    def get_info(self,Ks=15,K=15):
+        small_stuck = [self.rewards.stuck[i] > Ks for i in range(self.params.number_agents)]
         stuck = [False for i in range(self.params.number_agents)]
         for i , s in enumerate(small_stuck):
             if s:
                 current_pos = np.array(self.state.last_positions[i][-1])
                 oldest_pos = np.array(self.state.last_positions[i][0])
                 dist = np.linalg.norm(current_pos-oldest_pos, ord=1)
-
                 if dist<=1:
                     stuck[i]=True
-            else:
-                if self.rewards.stuck[i] >15:
+            else: #check if this else is necessary (remvoed in single agent)
+                if self.rewards.stuck[i] >K:
                     stuck[i] =True
 
-        # stuck = [self.rewards.stuck[i] > 15 for i in range(self.params.number_agents)]
+        #stuck = [self.rewards.stuck[i] > K for i in range(self.params.number_agents)]
         for i, s in enumerate(stuck):
             if not s:
                 self.position_locked[i] = False
@@ -165,3 +164,15 @@ class Environment:
             elif diff == (0, -1):
                 actions.append(Actions.WEST.value)
         return actions
+        #check later
+    def detect_collision(self, action):
+        next_p = copy.deepcopy(self.state.position[0])
+        a = [Actions(ac) for ac in action]
+        action = a[0]
+        next_p.x += -1 if action == Actions.NORTH else 1 if action == Actions.SOUTH else 0
+        # Change the column: 1=right (+1), 3=left (-1)
+        next_p.y += 1 if action == Actions.EAST else -1 if action == Actions.WEST else 0
+        ac = None
+        if (next_p.x, next_p.y) not in set(self.state.local_map.getTiles()).difference(set(self.state.local_map.obstacle_list)):
+            ac = self.get_heuristic_action()
+        return ac
