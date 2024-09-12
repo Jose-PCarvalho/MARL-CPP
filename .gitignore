@@ -1,0 +1,6 @@
+# Ignore the .idea directory (for JetBrains IDEs)
+.idea/
+
+# Ignore Python cache files and directories
+__pycache__/
+*.pyc
