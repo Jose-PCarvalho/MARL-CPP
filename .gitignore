@@ -4,3 +4,9 @@
 # Ignore Python cache files and directories
 __pycache__/
 *.pyc
+
+# Ignore all .pth files
+*.pth
+
+# But don't ignore base.pth
+!base.pth
