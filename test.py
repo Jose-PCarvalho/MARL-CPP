@@ -27,7 +27,7 @@ def test(args, T, dqn, val_mem, metrics, results_dir, env_args, evaluate=False):
                 reward_sum, done, truncated = 0, False, False
 
             
-            action = dqn.act_e_greedy(state[0], state[1],state[2],state[3])  # Choose an action ε-greedily
+            action = dqn.act(state[0], state[1],state[2],state[3])  # Choose an action ε-greedily
             if any(info):
                     action = dqn.act(state[0], state[1], state[2], state[3])
                     ac = env.get_heuristic_action(info)
