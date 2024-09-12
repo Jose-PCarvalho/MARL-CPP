@@ -36,7 +36,7 @@ def save_memory(memory, memory_path, disable_bzip):
 # Note that hyperparameters may originally be reported in ATARI game frames instead of agent steps
 parser = argparse.ArgumentParser(description='Rainbow')
 parser.add_argument('--seed', type=int, default=123, help='Random seed')
-parser.add_argument('--id', type=str, default='Test', help='Experiment ID')
+parser.add_argument('--id', type=str, default='New', help='Experiment ID')
 parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
 parser.add_argument('--T-max', type=int, default=int(70e4), metavar='STEPS',
                     help='Number of training steps (4x number of frames)')
@@ -50,7 +50,7 @@ parser.add_argument('--atoms', type=int, default=51, metavar='C', help='Discreti
 parser.add_argument('--V-min', type=float, default=-625, metavar='V', help='Minimum of value distribution support')
 parser.add_argument('--V-max', type=float, default=625, metavar='V', help='Maximum of value distribution support')
 parser.add_argument('--model', type=str, metavar='PARAMS', help='Pretrained model (state dict)')
-parser.add_argument('--memory-capacity', type=int, default=int(1e6), metavar='CAPACITY',
+parser.add_argument('--memory-capacity', type=int, default=int(1e5), metavar='CAPACITY',
                     help='Experience replay memory capacity')
 parser.add_argument('--replay-frequency', type=int, default=4, metavar='k', help='Frequency of sampling from memory')
 parser.add_argument('--priority-exponent', type=float, default=0.5, metavar='ω',
@@ -62,7 +62,7 @@ parser.add_argument('--discount', type=float, default=0.999, metavar='γ', help=
 parser.add_argument('--target-update', type=int, default=int(8e3), metavar='τ',
                     help='Number of steps after which to update target network')
 parser.add_argument('--reward-clip', type=int, default=1, metavar='VALUE', help='Reward clipping (0 to disable)')
-parser.add_argument('--learning-rate', type=float, default=0.0001, metavar='η', help='Learning rate')
+parser.add_argument('--learning-rate', type=float, default=0.00005, metavar='η', help='Learning rate')
 parser.add_argument('--adam-eps', type=float, default=0.000156, metavar='ε', help='Adam epsilon')
 parser.add_argument('--batch-size', type=int, default=32, metavar='SIZE', help='Batch size')
 parser.add_argument('--norm-clip', type=float, default=2.5, metavar='NORM', help='Max L2 norm for gradient clipping')
@@ -128,7 +128,6 @@ T = 0
 e = args.starting_environment
 priority_weight_increase = (args.priority_weight) / (21e6)
 while e < number_envs + 1:
-
     env_str = 'env' + str(e)
     args.T_max = conf[env_str]['base_steps']
     env = Environment(EnvironmentParams(conf[env_str]))
@@ -139,12 +138,13 @@ while e < number_envs + 1:
     T, done, truncated = 0, True, True
     avg_overlap = 1
     while T < args.evaluation_size:
-
         if done or truncated:
             state, info = env.reset()
 
         action = env.get_heuristic_action()
         next_state, _, done, truncated, info = env.step(action)
+        #if args.render:
+         #   env.render(center=False)
         val_mem.append(state[0], state[1], state[2], state[3], [-1], [0.0], done, truncated)
         state = next_state
         T += 1
@@ -167,16 +167,11 @@ while e < number_envs + 1:
             if done or truncated:
                 last_truncated = truncated
                 state, info = env.reset()
-
-
             if T % args.replay_frequency == 0:
                 dqn.reset_noise()  # Draw a new set of noisy weights
-            if ((last_truncated and env_size <= 10) or any(info)) and np.random.random() < 0.9:
-                action = dqn.act(state[0], state[1], state[2], state[3])
-                if last_truncated and env_size <= 10:
-                    ac = env.get_heuristic_action()
-                else:
-                    ac = env.get_heuristic_action(info)
+            if ((last_truncated and env_size <= 10) or any(info)) and np.random.random() < 1:
+                action = [None for _ in range(env.state.params.number_agents)]
+                ac = env.get_heuristic_action(info)
                 for i, a in enumerate(ac):
                     if a is not None:
                         action[i] = a
@@ -191,6 +186,8 @@ while e < number_envs + 1:
 
 
             next_state, reward, done, truncated, info = env.step(action)  # Step
+            #if args.render:
+             #   env.render(center=False)
 
             mem.append(state[0], state[1], state[2], state[3], action, reward, done,
                        truncated)  # Append transition to memory

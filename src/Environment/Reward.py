@@ -7,12 +7,8 @@ class RewardParams:
         self.blocked_reward = -1
         self.repeated_field_reward = -1
         self.new_tile_reward = 1
-        self.map_complete = 0  # max_size ** 2 - scaling ** 2
-        self.timeout = 0  # scaling ** 2
-        self.close_to_wall_reward = 1.0
-        self.repeated_action_reward = 1.0
-        self.finished_row_col = 1.0
-        self.repeating_two_moves = -1.0
+        self.K = 0.25
+        self.SI = True
 
 
 class GridRewards:
@@ -65,12 +61,10 @@ class GridRewards:
         for i, event in enumerate(events):
             new_closest_dist , new_closest_cell = state.local_map.min_manhattan_distance(state.position[i].get_position())
             new_closest_dist *=-1
-
             if Events.NEW in event:
-                r[i] += self.params.new_tile_reward
+                r[i] += (1-self.params.K)*self.params.new_tile_reward if self.params.SI else self.params.new_tile_reward
                 self.stuck[i] = 0
             else:
-                # r += self.params.repeated_field_reward
                 if all(new_closest_cell == self.closest_cell[i]):
                     new_dist = -len(state.local_map.dijkstra_search(state.position[i].get_position(),(new_closest_cell[0],new_closest_cell[1])))
                     old_dist = -len(state.local_map.dijkstra_search(state.position[i].get_position(),(self.closest_cell[i][0],self.closest_cell[i][1])))
@@ -82,19 +76,9 @@ class GridRewards:
                 self.stuck[i] += 1
             if Events.BLOCKED in event:
                 r[i] += self.params.blocked_reward
-            if Events.FINISHED in event:
-                r[i] += self.params.map_complete
-            if Events.TIMEOUT in event:
-                r[i] += self.params.timeout
-            if Events.WAITED in event:
-                if self.number_agents==1:
-                    r[i]+=-1
-                else:
-                    r[i] += 0.25
             r[i] += self.params.repeated_field_reward
             if self.number_agents > 1:
-                r[i] += (0.75)/(self.number_agents-1)*(max(0,(new_remaining_potential - self.last_remaining_potential) - 1*(Events.NEW in event)))
-            # r += (new_remaining_potential - self.last_remaining_potential) * 1
+                r[i] += self.params.K/(self.number_agents-1)*(events.count(Events.NEW) - 1*(Events.NEW in event))
             self.closest_dist[i] , self.closest_cell[i] = new_closest_dist, new_closest_cell
             self.cumulative_reward[i] += r[i]
 

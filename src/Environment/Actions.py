@@ -6,7 +6,7 @@ class Actions(Enum):
     SOUTH = 1
     WEST = 2
     EAST = 3
-    #WAIT = 4
+    WAIT = 4
 
 
 class Events(Enum):

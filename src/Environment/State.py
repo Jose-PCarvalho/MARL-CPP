@@ -61,7 +61,6 @@ class State:
         self.state_array = [[None for _ in range(3)] for _ in range(self.params.number_agents)]
         self.last_positions = [[None for _ in range(4)] for _ in range(self.params.number_agents)]
 
-
     def move_agent(self, actions):
         events = [[] for _ in range(self.params.number_agents)]
         for i, action in enumerate(actions):
@@ -119,7 +118,7 @@ class State:
                 self.local_map.laser_scanner(self.position[i].get_position(), self.global_map, self.params.sensor_range)
             elif self.params.sensor == "camera":
                 self.local_map.camera(self.position[i].get_position(), self.global_map, self.params.sensor_range)
-
+            self.local_map.update_agent_position((old_x, old_y), (self.position[i].x, self.position[i].y))
             self.state_array[i].pop(0)
             self.out_of_bounds[i].pop(0)
             self.last_positions[i].pop(0)
@@ -158,9 +157,9 @@ class State:
                 while True:
                     pos = Position(random.randint(0, height - 1), random.randint(0, width - 1))
                     if pos not in self.position:
-                        if i > 0 :
-                            dist = [np.linalg.norm(np.array(pos.get_position())-np.array(self.position[j].get_position())) for j in range(i)]
-                            if min(dist)>self.params.real_size/(self.params.number_agents+0.5):
+                        if i > 0:
+                            dist = [np.linalg.norm(np.array(pos.get_position()) - np.array(self.position[j].get_position())) for j in range(i)]
+                            if min(dist) > self.params.real_size / (self.params.number_agents + 0.5):
                                 self.position[i] = pos
                                 break
                         else:
@@ -193,13 +192,13 @@ class State:
         if self.params.sensor == "full information":
             self.local_map = self.global_map
         else:
-            self.local_map = GridMap(start=self.position)
+            self.local_map = GridMap(start=[self.position[0].get_position()])
 
         for pos in self.position:
             self.local_map.visit_tile(pos.get_position())
             self.local_map.update_agent_position(pos.get_position(), pos.get_position())
 
-        if self.params.random_coverage and np.random.random() < 0.5 and self.params.sensor == "full information":
+        if self.params.random_coverage and np.random.random() < 0.15 and self.params.sensor == "full information":
             for i in range(0, random.randint(0, ceil(self.params.real_size ** 2 / 1.5))):
                 tile = (random.randint(0, self.params.real_size - 1), random.randint(0, self.params.real_size - 1))
                 if tile not in self.local_map.visited_list and tile in set(self.global_map.getTiles()).difference(
@@ -231,7 +230,7 @@ class State:
             self.state_array[i] = [s, s, s]
             self.last_action[i] = [4, 4, 4]
             self.out_of_bounds[i] = [o, o, o]
-            self.last_positions[i] = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
+            self.last_positions[i] = [(-1, -1), (-1, -1), (-1, -1), (-1, -1)]
 
     def partial_reset(self):
         self.t_to_go = [self.params.size ** 2 * 2 for _ in range(self.params.number_agents)]
@@ -264,7 +263,7 @@ class State:
         self.truncated = False
         self.state_array = [[None for _ in range(3)] for _ in range(self.params.number_agents)]
         self.last_positions = [[None for _ in range(4)] for _ in range(self.params.number_agents)]
-        self.params.real_size = max(self.global_map.height,self.global_map.width)
+        self.params.real_size = max(self.global_map.height, self.global_map.width)
         for i in range(self.params.number_agents):
             while True:
                 pos = Position(random.randint(0, self.global_map.height - 1),
@@ -276,7 +275,7 @@ class State:
         if self.params.sensor == "full information":
             self.local_map = self.global_map
         else:
-            self.local_map = GridMap(start=self.position)
+            self.local_map = GridMap(start=[self.position[0].get_position()])
 
         for pos in self.position:
             self.local_map.visit_tile(pos.get_position())
@@ -284,7 +283,7 @@ class State:
 
         if self.params.random_coverage and np.random.random() < 0.5 and self.params.sensor == "full information":
             for i in range(0, random.randint(0, ceil(self.params.real_size ** 2 / 1.5))):
-                tile = (random.randint(0, self.params.real_size -  1), random.randint(0, self.params.real_size - 1))
+                tile = (random.randint(0, self.params.real_size - 1), random.randint(0, self.params.real_size - 1))
                 if tile not in self.local_map.visited_list and tile in set(self.global_map.getTiles()).difference(
                         self.global_map.obstacle_list):
                     self.local_map.visit_tile(tile)
@@ -295,7 +294,7 @@ class State:
         elif self.params.sensor == "camera":
             for position in self.position:
                 self.local_map.camera(position.get_position(), self.global_map, self.params.sensor_range)
-        
+                    
         self.remaining = len(set(self.global_map.getTiles()).difference(self.global_map.obstacle_list)) - len(
             self.local_map.visited_list)
         self.optimal_steps = self.remaining

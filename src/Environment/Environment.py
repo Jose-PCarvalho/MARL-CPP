@@ -3,6 +3,8 @@ import copy
 import pickle
 import time
 
+from torchgen.model import Return
+
 from src.Environment.Reward import *
 from src.Environment.State import *
 from src.Environment.Actions import *
@@ -76,8 +78,8 @@ class Environment:
 
         self.rewards.reset(self.state)
         self.remaining = self.state.remaining
-        self.heuristic_position = [None for _ in range(self.params.number_agents)]
-        self.position_locked = [False for _ in range(self.params.number_agents)]
+        self.heuristic_position = [None for _ in range(self.state.params.number_agents)]
+        self.position_locked = [False for _ in range(self.state.params.number_agents)]
         return self.get_observation(), self.get_info()
 
     def step(self, action):
@@ -91,7 +93,7 @@ class Environment:
 
     def render(self, center=False):
         if center:
-            for i in range(self.params.number_agents):
+            for i in range(self.state.params.number_agents):
                 obs = self.get_observation()
                 self.viz.render_center(obs[0][i][-1, :, :, :])
         else:
@@ -103,74 +105,100 @@ class Environment:
         return (np.array(self.state.state_array), self.state.t_to_go, np.array(self.state.last_action), oob)
 
     def get_info(self,Ks=15,K=15):
-        small_stuck = [self.rewards.stuck[i] > Ks for i in range(self.params.number_agents)]
-        stuck = [False for i in range(self.params.number_agents)]
+        if self.state.remaining <= self.state.params.number_agents:
+            return [True for i in range(self.state.params.number_agents)]
+        small_stuck = [self.rewards.stuck[i] > Ks for i in range(self.state.params.number_agents)]
+        stuck = [False for i in range(self.state.params.number_agents)]
         for i , s in enumerate(small_stuck):
             if s:
                 current_pos = np.array(self.state.last_positions[i][-1])
                 oldest_pos = np.array(self.state.last_positions[i][0])
                 dist = np.linalg.norm(current_pos-oldest_pos, ord=1)
-                if dist<=1:
-                    stuck[i]=True
-            else: #check if this else is necessary (remvoed in single agent)
-                if self.rewards.stuck[i] >K:
-                    stuck[i] =True
+                if dist<=1 :
+                    stuck[i]= True
 
-        #stuck = [self.rewards.stuck[i] > K for i in range(self.params.number_agents)]
+            if self.rewards.stuck[i] >K:
+                stuck[i] =True
         for i, s in enumerate(stuck):
             if not s:
                 self.position_locked[i] = False
+                self.heuristic_position[i] = None
 
         return stuck
 
     def get_heuristic_action(self,info=None):
-        actions = []   
-        for a in range(self.params.number_agents):
+        actions = [None for _ in range(self.state.params.number_agents)]
+        self.paths = [None for _ in range(self.state.params.number_agents)]
+        for a in range(self.state.params.number_agents):
             if info is not None:
-                if info[a]==False:
-                    actions.append(None)
+                if not info[a]:
+                    actions[a]=None
                     continue
             pos = self.heuristic_position[a]
             if pos is not None:
                 pos = tuple(pos)
-            if not self.position_locked[a] or self.heuristic_position[a] is None or pos in self.state.local_map.visited_list or pos == self.state.position[a].get_position():
-                positions, indices = self.state.local_map.path_min_manhattan(self.state.position[a].get_position())
-                for i in indices:
-                    path = self.state.local_map.dijkstra_search(self.state.position[a].get_position(),
-                                                                (positions[i][0], positions[i][1]))
-                    if len(path) != 0:
-                        self.position_locked[a] = True
-                        self.heuristic_position[a] = positions[i]
-                        break
+            if not self.position_locked[a] or pos is None or pos in self.state.local_map.visited_list or pos == self.state.position[a].get_position():
+                self.paths[a] = self.find_heuristic_position(a)
             else:
-                path = self.state.local_map.dijkstra_search(self.state.position[a].get_position(),
-                                                            (self.heuristic_position[a][0],
-                                                             self.heuristic_position[a][1]))
-            if len(path)==0:
-                self.render(center=True)
-                time.sleep(1000)
-            next = path[0]
-            if np.array_equal(next, self.heuristic_position[a]):
-                self.position_locked[a] = False
-                self.heuristic_position[a] = None
-            diff = np.array(next) - np.array(self.state.position[a].get_position())
+                self.paths[a] = self.state.local_map.dijkstra_search(self.state.position[a].get_position(),(self.heuristic_position[a][0],self.heuristic_position[a][1]))
+
+        for a in range(self.state.params.number_agents):
+            if not self.position_locked[a]:
+                actions[a] = 4
+                continue
+            diff = np.array(self.paths[a][0]) - np.array(self.state.position[a].get_position())
             diff = (diff[0], diff[1])
             if diff == (1, 0):
-                actions.append(Actions.SOUTH.value)
+                actions[a]=Actions.SOUTH.value
             elif diff == (-1, 0):
-                actions.append(Actions.NORTH.value)
+                actions[a]=Actions.NORTH.value
             elif diff == (0, 1):
-                actions.append(Actions.EAST.value)
+                actions[a]=Actions.EAST.value
             elif diff == (0, -1):
-                actions.append(Actions.WEST.value)
+                actions[a]=Actions.WEST.value
         return actions
-        #check later
+
+
+
+    def find_heuristic_position(self,a):
+        positions, indices = self.state.local_map.path_min_manhattan(self.state.position[a].get_position())
+        path = None
+        self.position_locked[a] = False
+        for i in indices:
+            if tuple(positions[i]) not in self.heuristic_position:
+                path = self.state.local_map.dijkstra_search(self.state.position[a].get_position(),
+                                                        (positions[i][0], positions[i][1]))
+                self.position_locked[a] = True
+                self.heuristic_position[a] = tuple(positions[i])
+                break
+            else:
+                a2 = self.heuristic_position.index(tuple(positions[i]))
+                path = self.contested_path(a,a2,positions[i])
+                if path is not None:
+                    break
+
+        return path
+    def contested_path(self,a1,a2,p):
+        p1 = self.state.local_map.dijkstra_search(self.state.position[a1].get_position(),
+                                                        (p[0], p[1]))
+        p2 = self.state.local_map.dijkstra_search(self.state.position[a2].get_position(),
+                                                  (p[0], p[1]))
+        if len(p1) < len(p2):
+            self.position_locked[a1] = True
+            self.heuristic_position[a1] = tuple(p)
+            self.heuristic_position[a2] = None
+            self.position_locked[a2] = None
+            self.paths[a2] = self.find_heuristic_position(a2)
+            return p1
+        return None
+
+
+
     def detect_collision(self, action):
         next_p = copy.deepcopy(self.state.position[0])
         a = [Actions(ac) for ac in action]
         action = a[0]
         next_p.x += -1 if action == Actions.NORTH else 1 if action == Actions.SOUTH else 0
-        # Change the column: 1=right (+1), 3=left (-1)
         next_p.y += 1 if action == Actions.EAST else -1 if action == Actions.WEST else 0
         ac = None
         if (next_p.x, next_p.y) not in set(self.state.local_map.getTiles()).difference(set(self.state.local_map.obstacle_list)):

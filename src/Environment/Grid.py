@@ -2,6 +2,8 @@ import numpy as np
 from math import ceil
 import heapq
 
+from networkx import neighbors
+
 
 class PriorityQueue:
     def __init__(self):
@@ -266,7 +268,7 @@ class GridMap:
         indices = sorted(range(len(distances)), key=lambda x: distances[x])
         return positions, indices
 
-    def dijkstra_search(self, start, finish):
+    def dijkstra_search(self, start, finish,avoid = None):
         frontier = PriorityQueue()
         frontier.put(start, 0)
         came_from = {start: None}
@@ -277,8 +279,10 @@ class GridMap:
 
             if current == finish:
                 break
-
-            for next in self.map[current]:
+            neighbors = self.map[current]
+            if avoid is not None:
+                neighbors = set(self.map[current]).difference(set(avoid))
+            for next in neighbors:
                 new_cost = cost_so_far[current] + 1
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
