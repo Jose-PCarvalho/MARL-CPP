@@ -8,6 +8,7 @@ __pycache__/
 
 # Ignore all .pth files
 *.pth
+*.pkl
 
 # But don't ignore base.pth
 !base.pth

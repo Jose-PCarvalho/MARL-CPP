@@ -76,8 +76,8 @@ class State:
             # Change the column: 1=right (+1), 3=left (-1)
             self.position[i].y += 1 if action == Actions.EAST else -1 if action == Actions.WEST else 0
             blocked = False
-            # if action == Actions.WAIT:
-            #     events[i].append(Events.WAITED)
+            if action == Actions.WAIT:
+                 events[i].append(Events.WAITED)
             if self.position[i].x < 0:
                 self.position[i].x = 0
                 blocked = True

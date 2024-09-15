@@ -71,14 +71,18 @@ class GridRewards:
                     dist = min(0.5*(new_dist - old_dist),0.5)
                 else:
                     dist = 0
-                r[i] += max(0,0.5 * (new_closest_dist - self.closest_dist[i]),dist)
+                if new_closest_dist != 0:
+                    r[i] += max(0,0.5 * (new_closest_dist - self.closest_dist[i]),dist)
                 self.overlap[i] += 1
                 self.stuck[i] += 1
             if Events.BLOCKED in event:
                 r[i] += self.params.blocked_reward
+            if Events.WAITED in event and self.remaining > self.number_agents:
+                r[i] += -self.params.K
             r[i] += self.params.repeated_field_reward
             if self.number_agents > 1:
-                r[i] += self.params.K/(self.number_agents-1)*(events.count(Events.NEW) - 1*(Events.NEW in event))
+                r[i] += (self.params.K)/(self.number_agents-1)*(max(0,(new_remaining_potential - self.last_remaining_potential) - 1*(Events.NEW in event)))
+                #self.params.K/(self.number_agents-1)*(events.count(Events.NEW) - 1*(Events.NEW in event))
             self.closest_dist[i] , self.closest_cell[i] = new_closest_dist, new_closest_cell
             self.cumulative_reward[i] += r[i]
 

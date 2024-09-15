@@ -104,7 +104,7 @@ class Environment:
         oob = oob[:, :, :, 0:2]
         return (np.array(self.state.state_array), self.state.t_to_go, np.array(self.state.last_action), oob)
 
-    def get_info(self,Ks=15,K=15):
+    def get_info(self,Ks=4,K=8):
         if self.state.remaining <= self.state.params.number_agents:
             return [True for i in range(self.state.params.number_agents)]
         small_stuck = [self.rewards.stuck[i] > Ks for i in range(self.state.params.number_agents)]

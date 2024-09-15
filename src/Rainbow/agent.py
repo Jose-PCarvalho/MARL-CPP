@@ -63,7 +63,7 @@ class Agent:
             battery = torch.tensor(battery, dtype=torch.int32, device=self.device)
             last_action = F.one_hot(torch.tensor(last_action, dtype=torch.int64, device=self.device), 5)
             out_bounds = torch.tensor(out_bounds, dtype=torch.int32, device=self.device)
-            return (self.online_net(state, battery, last_action, out_bounds))[0:3].argmax(1).tolist()
+            return (self.online_net(state, battery, last_action, out_bounds)).argmax(1).tolist()
 
 
     def learn(self, mem):

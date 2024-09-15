@@ -1,7 +1,7 @@
 env1:
   name: "env1_Full_Info_Non_Rand_Size5_Rand_Starting_Pose_Obstacle"
   base_steps: 2000000
-  number_agents: 4
+  number_agents: 2
   random_number_agents : False
   sensor: "full information"
   sensor_range: 3
@@ -16,7 +16,7 @@ env1:
   map_config : 'empty'
   random_coverage : false
   dataset_path: 'empty'
-  load_state: false
+  load_state: true
   load_random: false
 env2:
   name: "env2_Full_Info_Non_Rand_Size10_Rand_Starting_Pose_Obstacle"
