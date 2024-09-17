@@ -50,7 +50,7 @@ parser.add_argument('--V-min', type=float, default=-625, metavar='V', help='Mini
 parser.add_argument('--V-max', type=float, default=625, metavar='V', help='Maximum of value distribution support')
 
 parser.add_argument('--model', type=str, metavar='PARAMS',
-                    default='results/New/k025_new.pth',
+                    default='results/New/5AS_INC2.pth',
                     help='Pretrained model (state dict)')
 
 parser.add_argument('--memory-capacity', type=int, default=int(1), metavar='CAPACITY',

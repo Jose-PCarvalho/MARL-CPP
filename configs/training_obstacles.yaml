@@ -20,7 +20,7 @@ env1:
   load_random: false
 env2:
   name: "env2_Full_Info_Non_Rand_Size10_Rand_Starting_Pose_Obstacle"
-  base_steps: 5000000
+  base_steps: 2000000
   number_agents: 2
   random_number_agents : true
   sensor: "full information"
@@ -60,7 +60,7 @@ env3:
   load_random: false
 env4:
   name: "env4_Full_Info_Non_Rand_Size19_Rand_Starting_Pose_Obstacle"
-  base_steps: 5000000
+  base_steps: 3000000
   number_agents: 2
   random_number_agents : true
   sensor: "full information"
@@ -80,7 +80,7 @@ env4:
   load_random: false
 env5:
   name: "env5_Full_Info_Non_Rand_Size25_Rand_Starting_Pose_Obstacle"
-  base_steps: 10000000
+  base_steps: 7000000
   number_agents: 2
   random_number_agents : true
   sensor: "full information"

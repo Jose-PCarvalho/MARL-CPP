@@ -12,7 +12,7 @@ def save_memory(memory, memory_path):
         pickle.dump(memory, pickle_file)
 
 # Initialize lists to store data for different k values
-k_values = ['5AS_complete','5AS_incomplete','k025_old','k025_new','k025_old_4']# '05', '075', '1']  # Values of k without leading zeros
+k_values = ['5AS_complete','5AS_incomplete','k025_old','k025_new','k025_old_4','new_curriculum']# '05', '075', '1']  # Values of k without leading zeros
 T_overlaps = []
 plt.rcParams.update({'font.size': 12})
 
@@ -35,7 +35,7 @@ for T_overlap in T_overlaps_selected:
    averages.append([sum(x)/len(x) for x in T_overlap])
 #averages = [np.mean(np.array(T_overlap) ) for T_overlap in T_overlaps_selected]
 # Plot the data for different k values
-labels = ['5AS_complete','5AS_incomplete','k025_old','k025_new','025_old_4']
+labels = ['5AS_complete','5AS_incomplete','k025_old','k025_new','025_old_4','new_curriculum']
 for i, k in enumerate(k_values):
 
     ax.plot(map_sizes, averages[i], label=f'K={labels[i]}')
