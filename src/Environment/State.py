@@ -174,7 +174,7 @@ class State:
             mapa = np.zeros((height, width), dtype=int)
             if self.params.number_obstacles > 0:
                 if self.params.obstacles_random:
-                    obstacle_number = random.randint(0, self.params.number_obstacles)
+                    obstacle_number = random.randint(0, ceil(0.1*width*width)) #= random.randint(0, self.params.number_obstacles)
                 else:
                     obstacle_number = self.params.number_obstacles
                 obstacles = 0

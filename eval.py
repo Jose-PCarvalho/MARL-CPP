@@ -50,7 +50,7 @@ parser.add_argument('--V-min', type=float, default=-625, metavar='V', help='Mini
 parser.add_argument('--V-max', type=float, default=625, metavar='V', help='Maximum of value distribution support')
 
 parser.add_argument('--model', type=str, metavar='PARAMS',
-                    default='results/New/5AS_INC2.pth',
+                    default='results/test/checkpoint.pth',
                     help='Pretrained model (state dict)')
 
 parser.add_argument('--memory-capacity', type=int, default=int(1), metavar='CAPACITY',
@@ -172,7 +172,7 @@ for n in range(2,3):
                     break
 
     print(not_finished)
-    save_memory(T_overlap, 'stats/timesave_'+str(n)+'5AS_incomplete.pkl')
+    save_memory(T_overlap, 'stats/timesave_'+str(n)+'test.pkl')
 fig = plt.figure(figsize=(10, 7))
 
 # Creating plot

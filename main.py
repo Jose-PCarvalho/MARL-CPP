@@ -126,7 +126,7 @@ retries = 0
 all_T = 0
 T = 0
 e = args.starting_environment
-priority_weight_increase = (args.priority_weight) / (21e6)
+priority_weight_increase = (args.priority_weight) / (20e6)
 while e < number_envs + 1:
     env_str = 'env' + str(e)
     args.T_max = conf[env_str]['base_steps']

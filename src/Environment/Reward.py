@@ -62,7 +62,7 @@ class GridRewards:
             new_closest_dist , new_closest_cell = state.local_map.min_manhattan_distance(state.position[i].get_position())
             new_closest_dist *=-1
             if Events.NEW in event:
-                r[i] += (1-self.params.K)*self.params.new_tile_reward if self.params.SI else self.params.new_tile_reward
+                r[i] += (1-self.params.K)*self.params.new_tile_reward if self.params.SI and self.number_agents >1 else self.params.new_tile_reward
                 self.stuck[i] = 0
             else:
                 if all(new_closest_cell == self.closest_cell[i]):
@@ -79,6 +79,8 @@ class GridRewards:
                 r[i] += self.params.blocked_reward
             if Events.WAITED in event and self.remaining > self.number_agents:
                 r[i] += -self.params.K
+            if self.remaining ==0:
+                r[i]+=5
             r[i] += self.params.repeated_field_reward
             if self.number_agents > 1:
                 r[i] += (self.params.K)/(self.number_agents-1)*(max(0,(new_remaining_potential - self.last_remaining_potential) - 1*(Events.NEW in event)))
