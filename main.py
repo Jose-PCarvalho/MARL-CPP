@@ -169,25 +169,21 @@ while e < number_envs + 1:
                 state, info = env.reset()
             if T % args.replay_frequency == 0:
                 dqn.reset_noise()  # Draw a new set of noisy weights
-            if ((last_truncated and env_size <= 10) or any(info)) and np.random.random() < 1:
-                action = [None for _ in range(env.state.params.number_agents)]
+            action = dqn.act(state[0], state[1],state[2], state[3])
+            if (any(info)) and np.random.random() < 1:
                 ac = env.get_heuristic_action(info)
                 for i, a in enumerate(ac):
                     if a is not None:
                         action[i] = a
-            else:
-                action = dqn.act(state[0], state[1],
-                                 state[2], state[3])
                     # ac = env.detect_collision(action)
                     # if ac is not None:
                     #     for i, a in enumerate(ac):
                     #         if a is not None:
                     #             action[i] = a
 
-
             next_state, reward, done, truncated, info = env.step(action)  # Step
-            #if args.render:
-             #   env.render(center=False)
+            if args.render:
+                env.render(center=False)
 
             mem.append(state[0], state[1], state[2], state[3], action, reward, done,
                        truncated)  # Append transition to memory
