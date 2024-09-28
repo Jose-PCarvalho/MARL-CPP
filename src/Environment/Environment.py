@@ -156,6 +156,8 @@ class Environment:
                 actions[a]=Actions.EAST.value
             elif diff == (0, -1):
                 actions[a]=Actions.WEST.value
+            elif diff == (0, 0):
+                actions[a]=Actions.WAIT.value
         return actions
 
 
@@ -178,7 +180,10 @@ class Environment:
                 path = self.contested_path(a,a2,positions[i])
                 if path is not None:
                     break
-
+        if path is None:
+            path = [self.state.position[a].get_position()]
+            self.position_locked[a] = True
+            self.heuristic_position[a] = tuple(self.state.position[a].get_position())
         return path
     def contested_path(self,a1,a2,p):
         p1 = self.state.local_map.dijkstra_search(self.state.position[a1].get_position(),
