@@ -144,7 +144,7 @@ class Environment:
 
         for a in range(self.state.params.number_agents):
             if not self.position_locked[a]:
-                actions[a] = 4
+                actions[a] = None
                 continue
             diff = np.array(self.paths[a][0]) - np.array(self.state.position[a].get_position())
             diff = (diff[0], diff[1])
@@ -168,6 +168,8 @@ class Environment:
             if tuple(positions[i]) not in self.heuristic_position:
                 path = self.state.local_map.dijkstra_search(self.state.position[a].get_position(),
                                                         (positions[i][0], positions[i][1]))
+                if len(path) <1:
+                    continue
                 self.position_locked[a] = True
                 self.heuristic_position[a] = tuple(positions[i])
                 break

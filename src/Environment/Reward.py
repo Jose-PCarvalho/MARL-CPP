@@ -77,8 +77,8 @@ class GridRewards:
                 self.stuck[i] += 1
             if Events.BLOCKED in event:
                 r[i] += self.params.blocked_reward
-            if Events.WAITED in event and self.remaining > self.number_agents:
-                r[i] += -self.params.K
+            if Events.WAITED in event and (self.remaining > self.number_agents or self.number_agents==1) :
+                r[i] += -1 #-self.params.K
             if self.remaining ==0:
                 r[i]+=5
             r[i] += self.params.repeated_field_reward
