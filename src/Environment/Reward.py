@@ -72,7 +72,7 @@ class GridRewards:
                 else:
                     dist = 0
                 if new_closest_dist != 0:
-                    r[i] += max(0,0.5 * (new_closest_dist - self.closest_dist[i]),dist)
+                    r[i] += 0 #max(0,0.5 * (new_closest_dist - self.closest_dist[i]),dist)
                 self.overlap[i] += 1
                 self.stuck[i] += 1
             if Events.BLOCKED in event:
