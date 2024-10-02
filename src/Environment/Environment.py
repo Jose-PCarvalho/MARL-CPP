@@ -126,24 +126,21 @@ class Environment:
 
         return stuck
 
-    def get_heuristic_action(self,info=None):
+    def get_heuristic_action(self,info):
         actions = [None for _ in range(self.state.params.number_agents)]
         self.paths = [None for _ in range(self.state.params.number_agents)]
         for a in range(self.state.params.number_agents):
-            if info is not None:
-                if not info[a]:
-                    actions[a]=None
-                    continue
-            pos = self.heuristic_position[a]
-            if pos is not None:
-                pos = tuple(pos)
-            if not self.position_locked[a] or pos is None or pos in self.state.local_map.visited_list or pos == self.state.position[a].get_position():
-                self.paths[a] = self.find_heuristic_position(a)
-            else:
-                self.paths[a] = self.state.local_map.dijkstra_search(self.state.position[a].get_position(),(self.heuristic_position[a][0],self.heuristic_position[a][1]))
+            if info[a]:
+                pos = self.heuristic_position[a]
+                if pos is not None:
+                    pos = tuple(pos)
+                if not self.position_locked[a] or pos is None or pos in self.state.local_map.visited_list or pos == self.state.position[a].get_position():
+                    self.paths[a] = self.find_heuristic_position(a)
+                else:
+                    self.paths[a] = self.state.local_map.dijkstra_search(self.state.position[a].get_position(),(self.heuristic_position[a][0],self.heuristic_position[a][1]))
 
         for a in range(self.state.params.number_agents):
-            if not self.position_locked[a]:
+            if not info[a]:
                 actions[a] = None
                 continue
             diff = np.array(self.paths[a][0]) - np.array(self.state.position[a].get_position())
@@ -201,13 +198,16 @@ class Environment:
 
 
 
-    def detect_collision(self, action):
-        next_p = copy.deepcopy(self.state.position[0])
+    def detect_collision(self, action,info):
+        info_ = copy.deepcopy(info)
         a = [Actions(ac) for ac in action]
-        action = a[0]
-        next_p.x += -1 if action == Actions.NORTH else 1 if action == Actions.SOUTH else 0
-        next_p.y += 1 if action == Actions.EAST else -1 if action == Actions.WEST else 0
-        ac = None
-        if (next_p.x, next_p.y) not in set(self.state.local_map.getTiles()).difference(set(self.state.local_map.obstacle_list)):
-            ac = self.get_heuristic_action()
-        return ac
+        for i in range(self.state.params.number_agents):
+            next_p = copy.deepcopy(self.state.position[i])
+            action = a[i]
+            next_p.x += -1 if action == Actions.NORTH else 1 if action == Actions.SOUTH else 0
+            next_p.y += 1 if action == Actions.EAST else -1 if action == Actions.WEST else 0
+            ac = None
+            if ((next_p.x, next_p.y) not in set(self.state.local_map.getTiles()).difference(set(self.state.local_map.obstacle_list))) or info[i] == False:
+                info_[i] = True
+        ac = self.get_heuristic_action(info_)
+        return ac , info_

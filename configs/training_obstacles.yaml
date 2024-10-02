@@ -80,7 +80,7 @@ env4:
   load_random: false
 env5:
   name: "env5_Full_Info_Non_Rand_Size25_Rand_Starting_Pose_Obstacle"
-  base_steps: 10000000
+  base_steps: 5000000
   number_agents: 2
   random_number_agents : true
   sensor: "full information"

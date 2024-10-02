@@ -140,8 +140,8 @@ while e < number_envs + 1:
     while T < args.evaluation_size:
         if done or truncated:
             state, info = env.reset()
-
-        action = env.get_heuristic_action()
+        info = [True for _ in range(env.state.params.number_agents)]
+        action = env.get_heuristic_action(info)
         next_state, _, done, truncated, info = env.step(action)
         #if args.render:
          #   env.render(center=False)

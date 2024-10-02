@@ -50,7 +50,7 @@ parser.add_argument('--V-min', type=float, default=-625, metavar='V', help='Mini
 parser.add_argument('--V-max', type=float, default=625, metavar='V', help='Maximum of value distribution support')
 
 parser.add_argument('--model', type=str, metavar='PARAMS',
-                    default='results/test/checkpoint.pth',
+                    default='results/K025_new/checkpoint.pth',
                     help='Pretrained model (state dict)')
 
 parser.add_argument('--memory-capacity', type=int, default=int(1), metavar='CAPACITY',
@@ -150,13 +150,21 @@ for n in range(2,3):
                     reward_sum, done, truncated = 0, False, False
 
                 action = dqn.act(state[0], state[1], state[2], state[3])  # Choose an action ε-greedily
-                if any(info):
-                    action = dqn.act(state[0], state[1], state[2], state[3])
-                    ac = env.get_heuristic_action(info)
 
+                for i in range(len(info)):
+                    if action[i] == 4:
+                        info[i] = True
+                if any(info):
+                    #action = dqn.act(state[0], state[1], state[2], state[3])
+                    ac = env.get_heuristic_action(info)
+                    
                     for i, a in enumerate(ac):
-                        if a is not None:
-                            action[i] = a
+                         if a is not None:
+                             action[i] = a
+                         if action[i]== 4 and info[i]==False:
+                             print(action,info, env.state.remaining)
+
+
                 state, reward, done, truncated, info = env.step(action)  # Step
 
                 if args.render:
@@ -172,7 +180,7 @@ for n in range(2,3):
                     break
 
     print(not_finished)
-    save_memory(T_overlap, 'stats/timesave_'+str(n)+'test.pkl')
+    save_memory(T_overlap, 'stats/timesave_'+str(n)+'test2.pkl')
 fig = plt.figure(figsize=(10, 7))
 
 # Creating plot
