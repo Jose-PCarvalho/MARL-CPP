@@ -138,6 +138,7 @@ class State:
         return events
 
     def init_episode(self):
+
         if self.params.random_number_agents:
             x = random.random()
             if x <0.5:
@@ -180,21 +181,26 @@ class State:
             mapa = np.zeros((height, width), dtype=int)
             if self.params.number_obstacles > 0:
                 if self.params.obstacles_random:
-                    obstacle_number = random.randint(0, ceil(0.1*width*width)) #= random.randint(0, self.params.number_obstacles)
+                    obstacle_number = random.randint(0, int(ceil(0.1*width*width))) #= random.randint(0, self.params.number_obstacles)
                 else:
                     obstacle_number = self.params.number_obstacles
                 obstacles = 0
                 while obstacles != obstacle_number:
-                    coord = Position(random.randint(0, height - 1), random.randint(0, width - 1))
-                    if coord not in self.position:
-                        mapa[coord.x, coord.y] = -1
+                    coord = (random.randint(0, height - 1), random.randint(0, width - 1))
+                    if not any(coord[0] == pos.x and coord[1] == pos.y for pos in self.position):
+                        mapa[coord[0], coord[1]] = -1
                         obstacles += 1
 
         self.global_map = GridMap(mapa)
 
         if self.params.map_data is not None or self.params.number_obstacles > 0:
-            for pos in self.position:
-                self.global_map.fix_map(pos.get_position())
+            # for pos in self.position:
+            #     self.global_map.fix_map(pos.get_position())
+
+            if not self.global_map.fix_map(self.position):
+                self.init_episode()
+                return
+
         if self.params.sensor == "full information":
             self.local_map = self.global_map
         else:
@@ -222,6 +228,7 @@ class State:
             self.local_map.visited_list)
         if self.remaining < 1:
             self.init_episode()
+            return
         self.optimal_steps = self.remaining
         self.timesteps = 0
         self.t_to_go = [self.params.size ** 2 * 5 for _ in range(self.params.number_agents)]
@@ -237,6 +244,7 @@ class State:
             self.last_action[i] = [4, 4, 4]
             self.out_of_bounds[i] = [o, o, o]
             self.last_positions[i] = [(-1, -1), (-1, -1), (-1, -1), (-1, -1)]
+            
 
     def partial_reset(self):
         self.t_to_go = [self.params.size ** 2 * 2 for _ in range(self.params.number_agents)]
