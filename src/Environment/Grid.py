@@ -28,6 +28,7 @@ class GridMap:
             for tile in start:
                 self.new_tile(tile)
                 self.visited_list.append(tile)
+            self.map_array = self.graph_to_array()
         else:
             self.map = {}
             self.visited_list = []
@@ -43,6 +44,7 @@ class GridMap:
             for t in self.getTiles():
                 if not self.map[t] and t not in self.obstacle_list:
                     self.obstacle_list.append(t)
+            self.map_array = self.graph_to_array()
 
         else:
             x = max([start[i][0] for i in range(len(start))])
@@ -77,7 +79,7 @@ class GridMap:
                         self.map[adj].append(tile)
             else:
                 self.obstacle_list.append(tile)
-            self.map_array = self.graph_to_array()
+
 
     def print_graph(self):
         tiles = self.getTiles()
@@ -132,6 +134,7 @@ class GridMap:
                 obst = t in full_map.obstacle_list
                 if t in full_map_tiles and t not in local_map_tiles:
                     self.new_tile(t, obst)
+                    self.map_array = self.graph_to_array()
                 if obst:
                     break
 
@@ -146,6 +149,7 @@ class GridMap:
         for t in tiles:
             if t in full_map_tiles and t not in local_map_tiles and all(cord >= 0 for cord in t):
                 self.new_tile(t, obstacle=t in full_map.obstacle_list)
+        self.map_array = self.graph_to_array()
 
     def update_agent_position(self, old_position, new_position):
         self.map_array[3, old_position[0], old_position[1]] = 0
@@ -221,7 +225,7 @@ class GridMap:
         return new_arr, tiles_to_go
 
     def fix_map(self, start):
-        visited = self.dfs(start)
+        visited = self.dfs(start[0].get_position())
         non_obs = set(self.getTiles()).difference(self.obstacle_list)
         should_be_obs = non_obs.difference(visited)
         for t in should_be_obs:
@@ -230,6 +234,11 @@ class GridMap:
             self.map[t] = []
             self.obstacle_list.append(t)
         self.map_array = self.graph_to_array()
+        for pos in start:
+            if pos.get_position() in self.obstacle_list:
+                return False
+        return True
+
 
     def dfs(self, start, visited=None):
         if visited is None:
