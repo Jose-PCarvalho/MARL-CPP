@@ -139,7 +139,13 @@ class State:
 
     def init_episode(self):
         if self.params.random_number_agents:
-            self.params.number_agents = np.random.randint(1,self.params.max_number_agents+1)
+            x = random.random()
+            if x <0.5:
+                self.params.number_agents = np.random.randint(2,self.params.max_number_agents+1)
+            #self.params.number_agents = np.random.randint(1,self.params.max_number_agents+1)
+            else:
+                self.params.number_agents = 1
+            #self.params.number_agents = np.random.randint(1,self.params.max_number_agents+1)
         else:
             self.params.number_agents=self.params.max_number_agents
         if self.params.random_size:
