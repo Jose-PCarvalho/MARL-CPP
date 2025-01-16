@@ -36,6 +36,8 @@ class StateParams:
         self.sensor_range = args['sensor_range']
         self.sensor = args['sensor']
         self.random_coverage = args['random_coverage']
+        self.chi_agents = args['chi_agents']
+        self.chi_cov = args['chi_cov']
         if args['map_config'] != 'empty':
             with open(args['map_config'], 'r') as file:
                 yaml_data = yaml.safe_load(file)
@@ -141,7 +143,7 @@ class State:
 
         if self.params.random_number_agents:
             x = random.random()
-            if x <0.5:
+            if x <self.params.chi_agents:
                 self.params.number_agents = np.random.randint(2,self.params.max_number_agents+1)
             #self.params.number_agents = np.random.randint(1,self.params.max_number_agents+1)
             else:
@@ -181,7 +183,7 @@ class State:
             mapa = np.zeros((height, width), dtype=int)
             if self.params.number_obstacles > 0:
                 if self.params.obstacles_random:
-                    obstacle_number = random.randint(0, int(ceil(0.1*width*width))) #= random.randint(0, self.params.number_obstacles)
+                    obstacle_number = random.randint(0, int(ceil((self.params.numer_obstacles/100)*width*width))) #= random.randint(0, self.params.number_obstacles)
                 else:
                     obstacle_number = self.params.number_obstacles
                 obstacles = 0
@@ -194,9 +196,6 @@ class State:
         self.global_map = GridMap(mapa)
 
         if self.params.map_data is not None or self.params.number_obstacles > 0:
-            # for pos in self.position:
-            #     self.global_map.fix_map(pos.get_position())
-
             if not self.global_map.fix_map(self.position):
                 self.init_episode()
                 return
@@ -210,8 +209,8 @@ class State:
             self.local_map.visit_tile(pos.get_position())
             self.local_map.update_agent_position(pos.get_position(), pos.get_position())
 
-        if self.params.random_coverage and np.random.random() < 0.15 and self.params.sensor == "full information":
-            for i in range(0, random.randint(0, ceil(self.params.real_size ** 2 / 1.5))):
+        if self.params.random_coverage and np.random.random() < self.params.chi_cov and self.params.sensor == "full information":
+            for i in range(0, random.randint(0, int(ceil(self.params.real_size ** 2 / 1.5)))):
                 tile = (random.randint(0, self.params.real_size - 1), random.randint(0, self.params.real_size - 1))
                 if tile not in self.local_map.visited_list and tile in set(self.global_map.getTiles()).difference(
                         self.global_map.obstacle_list):
@@ -322,3 +321,32 @@ class State:
             self.last_action[i] = [4, 4, 4]
             self.out_of_bounds[i] = [o, o, o]
             self.last_positions[i] = [(-1,-1),(-1,-1),(-1,-1),(-1,-1)]
+
+    def add_one_agent(self):
+        self.params.number_agents+=1
+        while True:
+            pos = Position(random.randint(0, self.params.real_size - 1), random.randint(0, self.params.real_size - 1))
+            if pos not in self.position and pos.get_position() not in self.global_map.obstacle_list:
+                dist = [np.linalg.norm(np.array(pos.get_position()) - np.array(p.get_position())) for p in self.position]
+                if min(dist) > self.params.real_size / (self.params.number_agents + 0.5):
+                    self.position.append(pos)
+                    break
+        for pos in self.position:
+            self.local_map.visit_tile(pos.get_position())
+            self.local_map.update_agent_position(pos.get_position(), pos.get_position())
+        self.remaining = len(set(self.global_map.getTiles()).difference(self.global_map.obstacle_list)) - len(self.local_map.visited_list)
+        self.optimal_steps = self.remaining
+        self.timesteps = 0
+        self.t_to_go = [self.params.size ** 2 * 5 for _ in range(self.params.number_agents)]
+        self.terminated = False
+        self.truncated = False
+        self.last_action = [[4 for _ in range(3)] for _ in range(self.params.number_agents)]
+        self.out_of_bounds = [[None for _ in range(3)] for _ in range(self.params.number_agents)]
+        self.state_array = [[None for _ in range(3)] for _ in range(self.params.number_agents)]
+        self.last_positions = [[None for _ in range(4)] for _ in range(self.params.number_agents)]
+        for i, position in enumerate(self.position):
+            s, o = self.local_map.center_map(position.get_position())
+            self.state_array[i] = [s, s, s]
+            self.last_action[i] = [4, 4, 4]
+            self.out_of_bounds[i] = [o, o, o]
+            self.last_positions[i] = [(-1, -1), (-1, -1), (-1, -1), (-1, -1)]

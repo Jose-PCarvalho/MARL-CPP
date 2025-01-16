@@ -7,14 +7,16 @@ env1:
   sensor_range: 2
   size: 6
   min_size: 6
-  random_size: true
-  obstacles_random: false
-  number_obstacles: 2
+  random_size: false
+  obstacles_random: true
+  number_obstacles: 5
   starting_position: [19,0]
   starting_position_corner : false
   starting_position_random : true
   map_config : 'empty'
-  random_coverage : true
+  random_coverage : false
   dataset_path: 'empty'
   load_state: false
   load_random: false
+  chi_agents: 0.5
+  chi_cov: 0.15
