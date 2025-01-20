@@ -12,6 +12,7 @@ __pycache__/
 *.pth
 *.pkl
 *.txt
+*.zip
 
 # But don't ignore base.pth
 !base.pth

@@ -13,7 +13,9 @@ from src.Environment.Environment import *
 from src.Rainbow.agent import *
 from src.Rainbow.memory import ReplayMemory
 from test import test
+import sys
 
+sys.setrecursionlimit(11000)
 def log(s, log_dir=None):
     print('[' + str(datetime.now().strftime('%Y-%m-%dT%H:%M:%S')) + '] ' + s)
     if dir is not None:
@@ -126,7 +128,8 @@ retries = 0
 all_T = 0
 T = 0
 e = args.starting_environment
-priority_weight_increase = (args.priority_weight) / (20e6)
+priority_weight_increase = (args.priority_weight) / (24e6)
+
 while e < number_envs + 1:
     env_str = 'env' + str(e)
     args.T_max = conf[env_str]['base_steps']

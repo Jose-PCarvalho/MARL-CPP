@@ -14,6 +14,8 @@ from src.Environment.Environment import *
 from src.Rainbow.agent import *
 from src.Rainbow.memory import ReplayMemory
 from test import test
+from pathlib import Path
+
 
 def log(s, log_dir=None):
     print('[' + str(datetime.now().strftime('%Y-%m-%dT%H:%M:%S')) + '] ' + s)
@@ -35,7 +37,7 @@ def save_memory(memory, memory_path):
 # Note that hyperparameters may originally be reported in ATARI game frames instead of agent steps
 parser = argparse.ArgumentParser(description='Rainbow')
 parser.add_argument('--seed', type=int, default=123, help='Random seed')
-parser.add_argument('--id', type=str, default='CPP_EVALr', help='Experiment ID')
+parser.add_argument('--id', type=str, default='K025_new', help='Experiment ID')
 parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
 parser.add_argument('--T-max', type=int, default=int(70e4), metavar='STEPS',
                     help='Number of training steps (4x number of frames)')
@@ -95,6 +97,7 @@ parser.add_argument('--tau', type=float, default=0.004)
 
 # Setup
 args = parser.parse_args()
+args.model = 'results/'+args.id+'/checkpoint.pth'
 print(' ' * 26 + 'Options')
 for k, v in vars(args).items():
     print(' ' * 26 + k + ': ' + str(v))
@@ -120,71 +123,64 @@ if args.log_file:
     with open(args.log_file, 'w') as file:
         pass
 
-T_overlap, not_finished = [[] for _ in range(26)], [0 for _ in range(26)]
+T_overlap, not_finished,T_timesave = [[] for _ in range(51)], [0 for _ in range(51)],[[] for _ in range(51)]
 
 env_args = conf['env1']
 for n in range(2,3):
-    for size in range(10, 26):
+    for size in range(10, 51):
         print(size)
-        env_args['dataset_path'] = 'maps/datasets/eval/' + str(n) + '_' + str(size) + '.pth'
+        env_args['dataset_path'] = 'maps/datasets/multi_agent5%/' + str(n) + '_' + str(size) + '.pth'
         env = Environment(EnvironmentParams(env_args))
         action_space = env.action_space()
         dqn = Agent(args, action_space)
         done = True
         truncated = False
         dqn.eval()
-
-
         for t in range(50):
-
             while True:
-
                 if done or truncated:
                     state, info = env.reset(False)
-
                     env.params.number_agents=n
                     env.rewards.reset(env.state)
                     env.position_locked = [False for _ in range(env.params.number_agents)]
                     env.remaining = env.state.remaining
                     env.heuristic_position = [None for _ in range(env.params.number_agents)]
                     reward_sum, done, truncated = 0, False, False
-
                 action = dqn.act(state[0], state[1], state[2], state[3])  # Choose an action ε-greedily
-
                 for i in range(len(info)):
                     if action[i] == 4:
                         info[i] = True
                 if any(info):
                     #action = dqn.act(state[0], state[1], state[2], state[3])
                     ac = env.get_heuristic_action(info)
-                    
                     for i, a in enumerate(ac):
                          if a is not None:
                              action[i] = a
                          if action[i]== 4 and info[i]==False:
                              print(action,info, env.state.remaining)
-
-
                 state, reward, done, truncated, info = env.step(action)  # Step
-
+               
                 if args.render:
                     env.render()
                 if done or truncated:
                     if not truncated:
-
                         print("env: ", size, " episode ", t, " time_save: ", env.rewards.get_time_save())
-                        T_overlap[size - 5].append(env.rewards.get_time_save())
+                        T_timesave[size - 5].append(env.rewards.get_time_save())
+                        T_overlap[size - 5].append(env.rewards.get_overlap())
                     else:
-
                         not_finished[size - 5] += 1
                     break
 
     print(not_finished)
-    save_memory(T_overlap, 'stats/timesave_'+str(n)+'test2.pkl')
+    path = "stats/"+args.id
+    Path(path).mkdir(exist_ok=True)
+    save_memory(T_overlap, path+'/overlap.pkl')
+    save_memory(T_timesave, path+'/timesave.pkl')
+    save_memory(not_finished, path+'/not_finished.pkl')
 fig = plt.figure(figsize=(10, 7))
 
 # Creating plot
-plt.boxplot(T_overlap)
+plt.boxplot( np.asarray(T_timesave, dtype="object"))
 
 # show plot
 plt.show()

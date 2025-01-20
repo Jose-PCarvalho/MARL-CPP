@@ -1,5 +1,5 @@
 env1:
-  name: "env1_Full_Info_Non_Rand_Size5_Rand_Starting_Pose_Obstacle"
+  name: "env1"
   base_steps: 2000000
   number_agents: 2
   random_number_agents : true
@@ -14,12 +14,14 @@ env1:
   starting_position_corner : false
   starting_position_random : true
   map_config : 'empty'
-  random_coverage : false
+  random_coverage : true
   dataset_path: 'empty'
   load_state: false
   load_random: false
+  chi_agents: 0.5
+  chi_cov: 0.15
 env2:
-  name: "env2_Full_Info_Non_Rand_Size10_Rand_Starting_Pose_Obstacle"
+  name: "env2"
   base_steps: 2000000
   number_agents: 2
   random_number_agents : true
@@ -29,18 +31,20 @@ env2:
   min_size: 5
   random_size: true
   obstacles_random: true
-  number_obstacles: 10
+  number_obstacles: 5
   starting_position: [9,0]
   starting_position_corner : false
   starting_position_random : true
   map_config : 'empty'
-  random_coverage : false
+  random_coverage : true
   dataset_path: 'empty'
   load_state: false
   load_random: false
+  chi_agents: 0.5
+  chi_cov: 0.15
 env3:
-  name: "env3_Full_Info_Non_Rand_Size15_Rand_Starting_Pose_Obstacle"
-  base_steps: 3000000
+  name: "env3"
+  base_steps: 2000000
   number_agents: 2
   random_number_agents : true
   sensor: "full information"
@@ -49,18 +53,20 @@ env3:
   min_size: 10
   random_size: true
   obstacles_random: true
-  number_obstacles: 20
+  number_obstacles: 5
   starting_position: [14,0]
   starting_position_corner : false
   starting_position_random : true
   map_config : 'empty'
-  random_coverage : false
+  random_coverage : true
   dataset_path: 'empty'
   load_state: false
   load_random: false
+  chi_agents: 0.5
+  chi_cov: 0.15
 env4:
-  name: "env4_Full_Info_Non_Rand_Size19_Rand_Starting_Pose_Obstacle"
-  base_steps: 3000000
+  name: "env4"
+  base_steps: 2000000
   number_agents: 2
   random_number_agents : true
   sensor: "full information"
@@ -69,18 +75,20 @@ env4:
   min_size: 9
   random_size: true
   obstacles_random: true
-  number_obstacles: 30
+  number_obstacles: 5
   starting_position: [19,0]
   starting_position_corner : false
   starting_position_random : true
   map_config : 'empty'
-  random_coverage : false
+  random_coverage : true
   dataset_path: 'empty'
   load_state: false
   load_random: false
+  chi_agents: 0.5
+  chi_cov: 0.15
 env5:
-  name: "env5_Full_Info_Non_Rand_Size25_Rand_Starting_Pose_Obstacle"
-  base_steps: 5000000
+  name: "env5"
+  base_steps: 4000000
   number_agents: 2
   random_number_agents : true
   sensor: "full information"
@@ -89,7 +97,29 @@ env5:
   min_size: 15
   random_size: true
   obstacles_random: true
-  number_obstacles: 40
+  number_obstacles: 5
+  starting_position: [19,0]
+  starting_position_corner : false
+  starting_position_random : true
+  map_config : 'empty'
+  random_coverage : true
+  dataset_path: 'empty'
+  load_state: false
+  load_random: true
+  chi_agents: 0.5
+  chi_cov: 0.15
+env6:
+  name: "env6"
+  base_steps: 4000000
+  number_agents: 2
+  random_number_agents : true
+  sensor: "full information"
+  sensor_range: 4
+  size: 30
+  min_size: 20
+  random_size: true
+  obstacles_random: true
+  number_obstacles: 5
   starting_position: [19,0]
   starting_position_corner : false
   starting_position_random : true
@@ -98,3 +128,27 @@ env5:
   dataset_path: 'empty'
   load_state: false
   load_random: true
+  chi_agents: 0.5
+  chi_cov: 0.15
+env7:
+  name: "env7"
+  base_steps: 5000000
+  number_agents: 2
+  random_number_agents : true
+  sensor: "full information"
+  sensor_range: 4
+  size: 40
+  min_size: 20
+  random_size: true
+  obstacles_random: true
+  number_obstacles: 5
+  starting_position: [19,0]
+  starting_position_corner : false
+  starting_position_random : true
+  map_config : 'empty'
+  random_coverage : false
+  dataset_path: 'empty'
+  load_state: false
+  load_random: true
+  chi_agents: 0.5
+  chi_cov: 0.15

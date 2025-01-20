@@ -10,7 +10,6 @@ class RewardParams:
         self.K = 0.25
         self.SI = True
 
-
 class GridRewards:
     def __init__(self, params):
         self.number_agents = params.state_params.number_agents
