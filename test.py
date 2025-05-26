@@ -14,6 +14,8 @@ def test(args, T, dqn, val_mem, metrics, results_dir, env_args, evaluate=False):
     env_args['random_size'] = False
     env_args['dataset_path'] = 'empty'
     env_args['random_number_agents'] =False
+    if env_args['size'] == 30:
+        env_args['size'] = 50
     env = Environment(EnvironmentParams(env_args))
     metrics['steps'].append(T)
     T_rewards, T_Qs, T_overlap, T_time_save = [], [], [], []
@@ -28,6 +30,7 @@ def test(args, T, dqn, val_mem, metrics, results_dir, env_args, evaluate=False):
 
             
             action = dqn.act(state[0], state[1],state[2],state[3])  # Choose an action ε-greedily
+            info = env.get_info(3,6)
             if any(info):
                     action = dqn.act(state[0], state[1], state[2], state[3])
                     ac = env.get_heuristic_action(info)
@@ -58,6 +61,9 @@ def test(args, T, dqn, val_mem, metrics, results_dir, env_args, evaluate=False):
         if avg_reward > metrics['best_avg_reward']:
             metrics['best_avg_reward'] = avg_reward
             dqn.save(results_dir)
+        # if avg_time_save < 0.6 and env_args['size'] == 50:
+        #     a = f"{avg_time_save:.2f}"
+        #     dqn.save(results_dir,a+".pth")
 
         # Append to results and save metrics
         metrics['rewards'].append(T_rewards)

@@ -97,9 +97,10 @@ class State:
                 self.position[i].y = old_y
                 blocked = True
             elif (self.position[i].x, self.position[i].y) in other_agents:
-                for j in range(len(actions)):
-                    if i != j and (self.position[i].get_position() == other_agents[j]):
-                        events[j].append(Events.BLOCKED)
+             #   events[i].append(Events.BLOCKED)
+                #for j in range(len(actions)):
+                 #   if i != j and (self.position[i].get_position() == other_agents[j]):
+                  #      events[j].append(Events.BLOCKED)
                 self.position[i].x = old_x
                 self.position[i].y = old_y
                 blocked = True
@@ -115,7 +116,7 @@ class State:
 
             self.local_map.update_agent_position((old_x, old_y), (self.position[i].x, self.position[i].y))
             self.last_action[i].append(action.value)
-            self.last_action[i].pop()
+            self.last_action[i].pop(0)
             if self.params.sensor == "laser":
                 self.local_map.laser_scanner(self.position[i].get_position(), self.global_map, self.params.sensor_range)
             elif self.params.sensor == "camera":
@@ -143,7 +144,7 @@ class State:
 
         if self.params.random_number_agents:
             x = random.random()
-            if x <self.params.chi_agents:
+            if x <1-self.params.chi_agents:
                 self.params.number_agents = np.random.randint(2,self.params.max_number_agents+1)
             #self.params.number_agents = np.random.randint(1,self.params.max_number_agents+1)
             else:
@@ -159,6 +160,10 @@ class State:
             width = self.params.size
             height = width
             self.params.real_size = self.params.size
+            if self.params.map_data is not None:
+                width = self.params.map_data.shape[0]
+                height = width
+                self.params.real_size = self.params.size
 
         self.position = [Position(-1, - 1) for _ in range(self.params.number_agents)]
         if self.params.starting_position_random:

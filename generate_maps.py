@@ -25,8 +25,9 @@ def load_memory(memory_path):
 sys.setrecursionlimit(11000)
 env = Environment(EnvironmentParams(conf['env1']))
 
+
 # for n in range(1,2):
-#     for s in range(5,51):
+#     for s in range(10,51):
 #         maps = []
 #         env.state.params.size = s
 #         print(n,s)
@@ -35,21 +36,38 @@ env = Environment(EnvironmentParams(conf['env1']))
 #             #env.render()
 #             #time.sleep(1)
 #             maps.append(copy.deepcopy(env.state))
-#         save_memory(maps, 'maps/datasets/multi_agent5%/'+str(n)+'_'+str(s)+'.pth')
+#         save_memory(maps, 'maps/datasets/multi_agent0%/'+str(n)+'_'+str(s)+'.pth')
+
+
+# for n in range(2,16):
+#     for s in range(10,51):
+#         print(n,s)
+#         maps_=load_memory('maps/datasets/multi_agent0%/'+str(n-1)+'_'+str(s)+'.pth')
+#         maps = []
+#         for T in trange(0, 50):
+#             env.state = copy.deepcopy(maps_[T])
+#             #env.render()
+#             #time.sleep(1)
+#             env.state.add_one_agent()
+#             #env.render()
+#             #time.sleep(1)
+#             maps.append(copy.deepcopy(env.state))
+#         save_memory(maps, 'maps/datasets/multi_agent0%/'+str(n)+'_'+str(s)+'.pth')
+
+for n in range(1,2):
+
+    maps = []
+    env.reset(False)
+    maps.append(copy.deepcopy(env.state))
+    save_memory(maps, 'maps/datasets/map4/'+str(n)+'.pth')
 
 
 for n in range(2,16):
-    for s in range(5,51):
-        print(n,s)
-        maps_=load_memory('maps/datasets/multi_agent5%/'+str(n-1)+'_'+str(s)+'.pth')
-        maps = []
-        for T in trange(0, 50):
-            env.state = copy.deepcopy(maps_[T])
-            #env.render()
-            #time.sleep(1)
-            env.state.add_one_agent()
-            #env.render()
-            #time.sleep(1)
-            maps.append(copy.deepcopy(env.state))
-        save_memory(maps, 'maps/datasets/multi_agent5%/'+str(n)+'_'+str(s)+'.pth')
+
+    maps_=load_memory('maps/datasets/map4/'+str(n-1)+'.pth')
+    maps = []
+    env.state = copy.deepcopy(maps_[0])
+    env.state.add_one_agent()
+    maps.append(copy.deepcopy(env.state))
+    save_memory(maps, 'maps/datasets/map4/'+str(n)+'.pth')
 

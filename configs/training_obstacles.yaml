@@ -110,7 +110,7 @@ env5:
   chi_cov: 0.15
 env6:
   name: "env6"
-  base_steps: 4000000
+  base_steps: 6000000
   number_agents: 2
   random_number_agents : true
   sensor: "full information"

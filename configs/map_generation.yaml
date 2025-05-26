@@ -5,15 +5,15 @@ env1:
   random_number_agents : false
   sensor: "full information"
   sensor_range: 2
-  size: 6
-  min_size: 6
+  size: 32
+  min_size: 32
   random_size: false
   obstacles_random: true
-  number_obstacles: 5
+  number_obstacles: 0
   starting_position: [19,0]
   starting_position_corner : false
   starting_position_random : true
-  map_config : 'empty'
+  map_config : 'maps/map4.yaml'
   random_coverage : false
   dataset_path: 'empty'
   load_state: false

@@ -1,6 +1,7 @@
 import argparse
 import bz2
 import random
+import time
 from datetime import datetime
 import os
 import pickle
@@ -97,7 +98,7 @@ parser.add_argument('--tau', type=float, default=0.004)
 
 # Setup
 args = parser.parse_args()
-args.model = 'results/'+args.id+'/env6.pth'
+args.model = 'results/' + args.id + '/env6.pth'
 print(' ' * 26 + 'Options')
 for k, v in vars(args).items():
     print(' ' * 26 + k + ': ' + str(v))
@@ -123,66 +124,70 @@ if args.log_file:
     with open(args.log_file, 'w') as file:
         pass
 
-T_overlap, not_finished,T_timesave = [[] for _ in range(51)], [0 for _ in range(51)],[[] for _ in range(51)]
+T_overlap, not_finished, T_timesave = [[] for _ in range(51)], [0 for _ in range(51)], [[] for _ in range(51)]
 
 env_args = conf['env1']
-for n in range(2,3):
-    for size in range(10, 51):
-        print(size)
-        env_args['dataset_path'] = 'maps/datasets/multi_agent0%/' + str(n) + '_' + str(size) + '.pth'
-        env = Environment(EnvironmentParams(env_args))
-        action_space = env.action_space()
-        dqn = Agent(args, action_space)
-        done = True
-        truncated = False
-        dqn.eval()
-        for t in range(50):
-            while True:
-                if done or truncated:
-                    state, info = env.reset(False)
-                    env.params.number_agents=n
-                    env.rewards.reset(env.state)
-                    env.position_locked = [False for _ in range(env.params.number_agents)]
-                    env.remaining = env.state.remaining
-                    env.heuristic_position = [None for _ in range(env.params.number_agents)]
-                    reward_sum, done, truncated = 0, False, False
-                action = dqn.act(state[0], state[1], state[2], state[3])  # Choose an action ε-greedily
-                info = env.get_info(3, 6)
-                info = env.filter(action,info)
-                for i in range(len(info)):
-                    if action[i] == 4:
-                        info[i] = True
-                if any(info):
-                    #action = dqn.act(state[0], state[1], state[2], state[3])
-                    ac = env.get_heuristic_action(info)
-                    for i, a in enumerate(ac):
-                         if a is not None:
-                             action[i] = a
-                         if action[i]== 4 and info[i]==False:
-                             print(action,info, env.state.remaining)
-                state, reward, done, truncated, info = env.step(action)  # Step
-               
-                if args.render:
-                    env.render()
-                if done or truncated:
-                    if not truncated:
-                        print("env: ", size, " episode ", t, " time_save: ", env.rewards.get_time_save())
-                        T_timesave[size - 5].append(env.rewards.get_time_save())
-                        T_overlap[size - 5].append(env.rewards.get_overlap())
-                    else:
-                        not_finished[size - 5] += 1
-                    break
+action_space  = 5
+dqn = Agent(args, action_space)
+timesave = [[] for _ in range(6)]
+saved = [[] for _ in range(6)]
+random.seed(111)
+for n in range(5, 6):
 
-    print(not_finished)
-    path = "stats/"+ "0% obstacles"
-    Path(path).mkdir(exist_ok=True)
-    save_memory(T_overlap, path+'/overlap.pkl')
-    save_memory(T_timesave, path+'/timesave.pkl')
-    save_memory(not_finished, path+'/not_finished.pkl')
+
+    done = True
+    truncated = False
+    dqn.eval()
+    #args.render=True
+    for t in range(50):
+        env_args['dataset_path'] = 'maps/datasets/map3/' + str(n) + '.pth'
+        env = Environment(EnvironmentParams(env_args))
+        while True:
+            if done or truncated:
+                state, info = env.reset(False)
+                print(env.rewards.optimal_steps)
+                env.params.number_agents = n
+                env.rewards.reset(env.state)
+                env.position_locked = [False for _ in range(env.params.number_agents)]
+                env.remaining = env.state.remaining
+                env.heuristic_position = [None for _ in range(env.params.number_agents)]
+                reward_sum, done, truncated = 0, False, False
+                tiles = set(env.state.global_map.getTiles()).difference(env.state.global_map.obstacle_list)
+                env.save_position = random.choice(list(tiles))
+
+
+            action = dqn.act(state[0], state[1], state[2], state[3])  # Choose an action ε-greedily
+            info = env.get_info(3, 6)
+            info = env.filter(action, info)
+            for i in range(len(info)):
+                if action[i] == 4:
+                    info[i] = True
+            if any(info):
+                # action = dqn.act(state[0], state[1], state[2], state[3])
+                ac = env.get_heuristic_action(info)
+                for i, a in enumerate(ac):
+                    if a is not None:
+                        action[i] = a
+
+
+            state, reward, done, truncated, info = env.step(action)  # Step
+
+            if args.render:
+                env.render()
+            if done or truncated:
+                if not truncated:
+                    print(" time_save: ", env.rewards.get_time_save(), env.saved)
+                    timesave[n].append(env.rewards.get_time_save())
+                    saved[n].append(env.saved)
+                break
+path = "stats/" + 'map4'
+Path(path).mkdir(exist_ok=True)
+
+save_memory(timesave, path + '/timesave.pkl')
+save_memory(saved, path + '/saved.pkl')
+
+
+
 fig = plt.figure(figsize=(10, 7))
 
 # Creating plot
-plt.boxplot( np.asarray(T_timesave, dtype="object"))
-
-# show plot
-plt.show()

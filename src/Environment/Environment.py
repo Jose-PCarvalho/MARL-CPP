@@ -44,6 +44,8 @@ class Environment:
         self.was_partial = False
         self.heuristic_position = [None for _ in range(params.state_params.number_agents)]
         self.position_locked = [False for _ in range(params.state_params.number_agents)]
+        self.saved = -1
+        self.save_position = None
 
     def reset(self, training=True):
 
@@ -84,8 +86,33 @@ class Environment:
 
     def step(self, action):
         a = [Actions(ac) for ac in action]
+        for i,p in enumerate(self.state.position):
+            if p.get_position() == self.save_position:
+                a[i] = Actions.WAIT
+                self.state.local_map.map_array[3,p.get_position()[0], p.get_position()[1]] = 0
+                self.state.global_map.map_array[3,p.get_position()[0], p.get_position()[1]] = 0
+                if self.saved == -1:
+                    self.saved = self.rewards.steps
+                    for neighbor in self.state.global_map.map[p.get_position()]:
+                        self.state.global_map.map[neighbor].remove(p.get_position())
+                        #self.state.local_map.map[neighbor].remove(p.get_position())
+                    self.state.global_map.map[p.get_position()] = []
+                    self.state.local_map.map[p.get_position()] = []
+                    self.state.global_map.obstacle_list.append(p.get_position())
+                    self.state.local_map.obstacle_list.append(p.get_position())
+                    self.state.local_map.graph_to_array()
+                    self.state.global_map.graph_to_array()
+                self.heuristic_position[i] = None
+
         events = self.state.move_agent(a)
         reward = self.rewards.compute_reward(events, self.state)
+        for i,p in enumerate(self.state.position):
+            if p.get_position() == self.save_position:
+                a[i] = Actions.WAIT
+                self.state.local_map.map_array[3,p.get_position()[0], p.get_position()[1]] = 0
+                self.state.global_map.map_array[3,p.get_position()[0], p.get_position()[1]] = 0
+                if self.saved ==0:
+                    self.saved = self.rewards.steps
         return self.get_observation(), reward, self.state.terminated, self.state.truncated, self.get_info()
 
     def action_space(self):
@@ -104,7 +131,7 @@ class Environment:
         oob = oob[:, :, :, 0:2]
         return (np.array(self.state.state_array), self.state.t_to_go, np.array(self.state.last_action), oob)
 
-    def get_info(self,Ks=4,K=8):
+    def get_info(self,Ks=6,K=8):
         if self.state.remaining <= self.state.params.number_agents:
             return [True for i in range(self.state.params.number_agents)]
         small_stuck = [self.rewards.stuck[i] > Ks for i in range(self.state.params.number_agents)]
@@ -130,6 +157,8 @@ class Environment:
         actions = [None for _ in range(self.state.params.number_agents)]
         self.paths = [None for _ in range(self.state.params.number_agents)]
         for a in range(self.state.params.number_agents):
+            if self.state.position[a].get_position() == self.save_position:
+                info[a] =False
             if info[a]:
                 pos = self.heuristic_position[a]
                 if pos is not None:
@@ -211,3 +240,34 @@ class Environment:
                 info_[i] = True
         ac = self.get_heuristic_action(info_)
         return ac , info_
+
+    def filter(self,actions,info):
+        info_ = copy.deepcopy(info)
+        a = [Actions(ac) for ac in actions]
+        next_positions = [None for ac in actions]
+        for i in range(self.state.params.number_agents):
+            next_p = copy.deepcopy(self.state.position[i])
+            action = a[i]
+            next_p.x += -1 if action == Actions.NORTH else 1 if action == Actions.SOUTH else 0
+            next_p.y += 1 if action == Actions.EAST else -1 if action == Actions.WEST else 0
+            next_positions[i] = (next_p.x,next_p.y)
+            if info[i]:
+                info_[i] = True
+            elif (next_p.x, next_p.y) not in set(self.state.local_map.getTiles()).difference(set(self.state.local_map.obstacle_list)):
+               info_[i] = True
+            if ((action == Actions.NORTH and self.state.last_action[i][-1] == Actions.SOUTH.value)
+                    or (action == Actions.SOUTH and self.state.last_action[i][-1]  == Actions.NORTH.value )
+                    or (action == Actions.EAST and self.state.last_action[i][-1]  == Actions.WEST.value )
+                    or (action == Actions.WEST and self.state.last_action[i][-1]  == Actions.EAST.value )) and self.rewards.stuck[i]>0 and next_positions[i] in self.state.local_map.visited_list:
+                #print("back and forth")
+                info_[i] = True
+        for i in range(self.state.params.number_agents):
+            for j in range(self.state.params.number_agents):
+                if i!=j:
+                    if next_positions[i] == next_positions[j]:
+                        info_[i] = True
+                        info_[j] = True
+                    #    print("inter_agent_colision")
+
+        #ac = self.get_heuristic_action(info_)
+        return info_

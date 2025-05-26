@@ -173,6 +173,7 @@ while e < number_envs + 1:
             if T % args.replay_frequency == 0:
                 dqn.reset_noise()  # Draw a new set of noisy weights
             action = dqn.act(state[0], state[1],state[2], state[3])
+            #info = env.filter(action,info)
             if (any(info)) and np.random.random() < 1:
                 ac = env.get_heuristic_action(info)
                 for i, a in enumerate(ac):

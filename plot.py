@@ -46,8 +46,8 @@ def plot(k_values,labels,title):
 
 #########################################################################################################################################
 
-k_values = ['SI K=0','SI K=0.25','SI K=0.5','SI K=0.75','SI K=1','new','new2']
-labels = ['SI K=0','SI K=0.25','SI K=0.5','SI K=0.75','SI K=1','NEW','new2']
+k_values = ['SI K=0','SI K=0.25','SI K=0.5','SI K=0.75','SI K=1','new','plspls']
+labels = ['SI K=0','SI K=0.25','SI K=0.5','SI K=0.75','SI K=1','NEW','pls']
 title = 'Mean Time Save Factor for Different K Values with SI Reward Structure '
 
 plot(k_values,labels,title)
