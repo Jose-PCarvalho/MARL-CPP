@@ -2,7 +2,7 @@ env1:
   name: "env1"
   base_steps: 2000000
   number_agents: 2
-  random_number_agents : true
+  random_number_agents : false
   sensor: "full information"
   sensor_range: 3
   size: 5

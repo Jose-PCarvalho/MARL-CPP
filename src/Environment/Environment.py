@@ -1,14 +1,23 @@
 import bz2
 import copy
 import pickle
-import time
-
-from torchgen.model import Return
+import numpy as np
+import torch
+from torchrl.envs.common import EnvBase
+from torchrl.data import Composite, Unbounded, Categorical
+from tensordict import TensorDict
 
 from src.Environment.Reward import *
 from src.Environment.State import *
 from src.Environment.Actions import *
 from src.Environment.Vizualization import *
+
+
+
+
+
+
+
 
 
 def load_memory(memory_path):
@@ -30,7 +39,7 @@ class EnvironmentParams:
         self.state_ptr = 0
 
 
-class Environment:
+class Environment():
     def __init__(self, params: EnvironmentParams):
         self.rewards = GridRewards(params)
         self.state = State(params.state_params)
@@ -113,6 +122,7 @@ class Environment:
                 self.state.global_map.map_array[3,p.get_position()[0], p.get_position()[1]] = 0
                 if self.saved ==0:
                     self.saved = self.rewards.steps
+
         return self.get_observation(), reward, self.state.terminated, self.state.truncated, self.get_info()
 
     def action_space(self):
