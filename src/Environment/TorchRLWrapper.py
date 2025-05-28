@@ -7,7 +7,6 @@ import torch
 from torchrl.envs.common import EnvBase
 from torchrl.data import Composite, Unbounded, Categorical
 from tensordict import TensorDict
-
 from src.Environment.Reward import *
 from src.Environment.State import *
 from src.Environment.Actions import *
@@ -22,7 +21,9 @@ class TorchRLEnvironmentWrapper(EnvBase):
         self.observation_spec = self._make_observation_spec()
         self.action_spec = self._make_action_spec()
         self.reward_spec = self._make_reward_spec()
-        self._batch_size = torch.Size([])  # single environment, not vectorized
+        self.done_spec = Categorical(n = 2,shape = torch.Size((1,)),dtype = torch.bool,)
+        #self._batch_size = torch.Size([])  # single environment, not vectorized
+        self.device = torch.device('cuda:0')
 
 
     def _reset(self, tensordict=None):
@@ -41,7 +42,8 @@ class TorchRLEnvironmentWrapper(EnvBase):
 
     def build_tensordict(self, obs, info, reward=None, terminated=None, truncated=None):
         state_array, t_to_go, last_action, out_of_bounds = obs
-        td = TensorDict({}, batch_size=[])
+        td = TensorDict({})
+        n = self.env.params.max_number_agents
         # per-agent observations
         td.set(("agents", "observation"), torch.tensor(state_array, dtype=torch.float32))
         #td.set(("agents", "t_to_go"), torch.tensor(t_to_go, dtype=torch.float32))
@@ -49,30 +51,53 @@ class TorchRLEnvironmentWrapper(EnvBase):
         #td.set(("agents", "out_of_bounds"), torch.tensor(out_of_bounds, dtype=torch.float32))
         if reward is not None:
             td.set(("agents","reward"), torch.tensor(np.array(reward), dtype=torch.float32))
-        if terminated is not None:
-            td.set(("terminated"), torch.tensor(terminated, dtype=torch.bool))
+        #if terminated is not None:
+            #td.set(("terminated"), torch.tensor(terminated, dtype=torch.bool))
         #if truncated is not None:
          #   td.set(( "truncated"), torch.tensor(truncated, dtype=torch.bool))
-        #if terminated is not None:
+        if terminated is not None or truncated is not None:
             done = np.logical_or(terminated, truncated)
             td.set(("done"), torch.tensor(done, dtype=torch.bool))
-        return td
+
+        return td.to(self.device)
 
     def _make_observation_spec(self):
+        # 1) grab one reset to infer shapes
         obs, _ = self.env.reset(training=False)
-        state_array = obs[0]  # shape [n_agents, C, H, W]
-        n_agents, F, C, H, W = state_array.shape
-        return Composite({
-            ("agents", "observation"): Unbounded((n_agents, F, C, H, W), dtype=torch.float32)
-        })
+        #    obs[0] has shape [n_agents, F, C, H, W]
+        state_array = obs[0]
+        n, F, C, H, W = state_array.shape
+        observation_specs = []
+        for i in range(n):
+            observation_specs.append(Unbounded(shape=(F,C,H,W),dtype=torch.float32))
+
+        observation_spec = Composite({"agents": Composite({"observation": torch.stack(observation_specs)}, shape = (n,))})
+        return observation_spec
+
+
 
 
     def _make_action_spec(self):
         n = self.env.params.max_number_agents
-        return Composite({("agents", "action"): Categorical(len(Actions), shape=(n,), dtype=torch.int64)})
+        # action_spec = Categorical(n=len(Actions),device="cuda:0", dtype=torch.int64,shape=torch.Size([n,]))
+        # agents_spec = Composite(action=action_spec,device="cuda:0",shape=torch.Size([n,]))
+        # spec = Composite(agents=agents_spec,device="cuda:0",shape=torch.Size([]))
+        # print(spec)
+        action_specs = []
+        for i in range(n):
+            action_specs.append(Categorical(shape=(1,),n=len(Actions),device="cuda:0", dtype=torch.int64))
+        action_spec = Composite(
+            {
+                "agents":Composite({"action":torch.stack(action_specs)},shape=(n,))
+            })
+        return action_spec
 
 
     def _make_reward_spec(self):
         n=self.env.params.max_number_agents
-        return Composite({("agents","reward"): Unbounded((n,), dtype=torch.float32)})
+        reward_specs = []
+        for i in range(n):
+            reward_specs.append(Unbounded(shape=(1,),dtype=torch.float32))
+        reward_spec = Composite({"agents": Composite({"reward": torch.stack(reward_specs)},shape=(n,))})
+        return reward_spec
 

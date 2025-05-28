@@ -20,6 +20,10 @@ num_epochs = 4
 learning_rate = 1e-3
 max_iterations = 100
 
+
+train_device = "cpu" if not torch.cuda.device_count() else "cuda:0"
+env_device = train_device
+
 with open('configs/training_obstacles.yaml', 'r') as f:
     conf = yaml.safe_load(f)
 raw_env = Environment(EnvironmentParams(conf['env1']))
@@ -32,12 +36,13 @@ obs_shape = F* C * H * W
 act_spec = env.action_spec[('agents','action')]
 act_dim = act_spec.n
 
-policy = Sequential(
+net = Sequential(
     Flatten(start_dim=-4),  # flatten per-agent C,H,W
-    MLP(obs_shape, act_spec.n, depth=2, num_cells=256)
+    MLP(obs_shape, act_spec.n, depth=2, num_cells=256, device =train_device),
+
 )
 module = TensorDictModule(
-    policy,
+    net,
     in_keys=[('agents','observation')],
     out_keys=[('agents','action_value')]
 )
@@ -62,48 +67,42 @@ qnet_explore = SafeSequential(qnet, exploration)
 # Mixer
 mixer = TensorDictModule(
     module=QMixer(
-        state_shape=(obs_shape,),
+        state_shape=env.observation_spec["agents"]["observation"].shape,
         mixing_embed_dim=32,
         n_agents=conf['env1']['number_agents'],
-        device='cuda:0',
+        device=train_device,
     ),
     in_keys=[('agents','chosen_action_value'), ('agents','observation')],
     out_keys=['chosen_action_value']
 )
 
 # Loss and updater
-loss_module = QMixerLoss(
-    qnet,
-    mixer,
-    delay_value=True,
-    action_space=act_spec
-)
+loss_module = QMixerLoss(qnet,mixer,delay_value=True,action_space=act_spec)
 loss_module.set_keys(
     action_value=('agents','action_value'),
     local_value=('agents','chosen_action_value'),
     global_value='chosen_action_value',
-    action=('agents','action')
+    action=env.action_key,
 )
 loss_module.make_value_estimator(ValueEstimators.TD0, gamma=0.99)
-target_updater = SoftUpdate(loss_module, eps=0.005)
+target_updater = SoftUpdate(loss_module, eps=1-0.005)
 
 # Collector & replay buffer
 collector = SyncDataCollector(
     env,
     qnet_explore,
+    device=env_device,
+    storing_device= train_device,
     frames_per_batch=frames_per_batch,
     total_frames=total_frames,
-    device='cuda:0',
-    storing_device='cuda:0'
-)
+    )
 replay_buffer = TensorDictReplayBuffer(
-    storage = LazyTensorStorage(total_frames, device='cuda:0'),
+    storage = LazyTensorStorage(total_frames, device=train_device),
     sampler = SamplerWithoutReplacement(),
     batch_size=minibatch_size
 )
 
 # Training loop
-env.rollout(10,qnet)
 optimizer = torch.optim.Adam(loss_module.parameters(), lr=learning_rate)
 for i, td in enumerate(collector):
     replay_buffer.extend(td.reshape(-1))

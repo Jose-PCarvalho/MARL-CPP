@@ -66,4 +66,5 @@ for step in range(5):
 
 
 td = torchrl_env.rollout(10000)
+td=torch.zeros_like(td)
 print(td)
