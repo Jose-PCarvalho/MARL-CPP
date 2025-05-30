@@ -7,12 +7,13 @@
 __pycache__/
 *.pyc
 *.html
+outputs/
 
 # Ignore all .pth files
 *.pth
 *.pkl
 *.txt
 *.zip
-
+*.log
 # But don't ignore base.pth
 !base.pth
