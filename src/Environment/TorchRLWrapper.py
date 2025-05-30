@@ -42,15 +42,18 @@ class TorchRLEnvironmentWrapper(EnvBase):
 
     def build_tensordict(self, obs, info, reward=None, terminated=None, truncated=None):
         state_array, t_to_go, last_action, out_of_bounds = obs
-        td = TensorDict({})
+
         n = self.env.params.max_number_agents
+        td = TensorDict({})
         # per-agent observations
-        td.set(("agents", "observation"), torch.tensor(state_array, dtype=torch.float32))
+        agents_td =TensorDict({},batch_size=[n])
+        agents_td.set(("observation"), torch.tensor(state_array, dtype=torch.float32))
         #td.set(("agents", "t_to_go"), torch.tensor(t_to_go, dtype=torch.float32))
         #td.set(("agents", "last_action"), torch.tensor(last_action, dtype=torch.int64))
         #td.set(("agents", "out_of_bounds"), torch.tensor(out_of_bounds, dtype=torch.float32))
         if reward is not None:
-            td.set(("agents","reward"), torch.tensor(np.array(reward), dtype=torch.float32))
+            agents_td.set(("reward"), torch.tensor(np.array(reward), dtype=torch.float32))
+
         #if terminated is not None:
             #td.set(("terminated"), torch.tensor(terminated, dtype=torch.bool))
         #if truncated is not None:
@@ -58,6 +61,7 @@ class TorchRLEnvironmentWrapper(EnvBase):
         if terminated is not None or truncated is not None:
             done = np.logical_or(terminated, truncated)
             td.set(("done"), torch.tensor(done, dtype=torch.bool))
+        td.set("agents",agents_td)
 
         return td.to(self.device)
 
@@ -85,7 +89,7 @@ class TorchRLEnvironmentWrapper(EnvBase):
         # print(spec)
         action_specs = []
         for i in range(n):
-            action_specs.append(Categorical(shape=(1,),n=len(Actions),device="cuda:0", dtype=torch.int64))
+            action_specs.append(Categorical(n=len(Actions),device="cuda:0", dtype=torch.int64))
         action_spec = Composite(
             {
                 "agents":Composite({"action":torch.stack(action_specs)},shape=(n,))
@@ -97,7 +101,7 @@ class TorchRLEnvironmentWrapper(EnvBase):
         n=self.env.params.max_number_agents
         reward_specs = []
         for i in range(n):
-            reward_specs.append(Unbounded(shape=(1,),dtype=torch.float32))
+            reward_specs.append(Unbounded(dtype=torch.float32))
         reward_spec = Composite({"agents": Composite({"reward": torch.stack(reward_specs)},shape=(n,))})
         return reward_spec
 

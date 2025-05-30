@@ -94,7 +94,7 @@ class Environment():
         return self.get_observation(), self.get_info()
 
     def step(self, action):
-        a = [Actions(ac[0]) for ac in action]
+        a = [Actions(ac) for ac in action]
         for i,p in enumerate(self.state.position):
             if p.get_position() == self.save_position:
                 a[i] = Actions.WAIT
@@ -122,6 +122,7 @@ class Environment():
                 self.state.global_map.map_array[3,p.get_position()[0], p.get_position()[1]] = 0
                 if self.saved ==0:
                     self.saved = self.rewards.steps
+        self.render()
         return self.get_observation(), reward, self.state.terminated, self.state.truncated, self.get_info()
 
     def action_space(self):
