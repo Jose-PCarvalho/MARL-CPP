@@ -8,6 +8,7 @@ __pycache__/
 *.pyc
 *.html
 outputs/
+wandb/
 
 # Ignore all .pth files
 *.pth
