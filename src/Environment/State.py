@@ -235,7 +235,7 @@ class State:
             return
         self.optimal_steps = self.remaining
         self.timesteps = 0
-        self.t_to_go = [self.params.size ** 2 * 5 for _ in range(self.params.number_agents)]
+        self.t_to_go = [self.params.size ** 2 * 30 for _ in range(self.params.number_agents)]
         self.terminated = False
         self.truncated = False
         self.last_action = [[4 for _ in range(3)] for _ in range(self.params.number_agents)]

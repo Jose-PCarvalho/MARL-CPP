@@ -55,6 +55,7 @@ class Environment():
         self.position_locked = [False for _ in range(params.state_params.number_agents)]
         self.saved = -1
         self.save_position = None
+        self.rendering = False
 
     def reset(self, training=True):
 
@@ -86,11 +87,11 @@ class Environment():
 
                 if training:
                     self.interesting_states.append(copy.deepcopy(self.state))
-
         self.rewards.reset(self.state)
         self.remaining = self.state.remaining
         self.heuristic_position = [None for _ in range(self.state.params.number_agents)]
         self.position_locked = [False for _ in range(self.state.params.number_agents)]
+
         return self.get_observation(), self.get_info()
 
     def step(self, action):
@@ -122,7 +123,9 @@ class Environment():
                 self.state.global_map.map_array[3,p.get_position()[0], p.get_position()[1]] = 0
                 if self.saved ==0:
                     self.saved = self.rewards.steps
-        self.render()
+        if self.rendering:
+            self.render()
+
         return self.get_observation(), reward, self.state.terminated, self.state.truncated, self.get_info()
 
     def action_space(self):

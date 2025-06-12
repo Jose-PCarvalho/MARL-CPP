@@ -7,7 +7,7 @@ class RewardParams:
         self.blocked_reward = -1
         self.repeated_field_reward = -1
         self.new_tile_reward = 1
-        self.K = 0.25
+        self.K = 0.5
         self.SI = True
 
 class GridRewards:
@@ -63,21 +63,12 @@ class GridRewards:
             if Events.NEW in event:
                 r[i] += (1-self.params.K)*self.params.new_tile_reward if self.params.SI and self.number_agents >1 else self.params.new_tile_reward
                 self.stuck[i] = 0
-            else:
-                if all(new_closest_cell == self.closest_cell[i]):
-                    new_dist = -len(state.local_map.dijkstra_search(state.position[i].get_position(),(new_closest_cell[0],new_closest_cell[1])))
-                    old_dist = -len(state.local_map.dijkstra_search(state.position[i].get_position(),(self.closest_cell[i][0],self.closest_cell[i][1])))
-                    dist = min(0.5*(new_dist - old_dist),0.5)
-                else:
-                    dist = 0
-                if new_closest_dist != 0:
-                    r[i] += 0 #max(0,0.5 * (new_closest_dist - self.closest_dist[i]),dist)
                 self.overlap[i] += 1
                 self.stuck[i] += 1
             if Events.BLOCKED in event:
-                r[i] += self.params.blocked_reward
+                r[i] += 0 #self.params.blocked_reward
             if Events.WAITED in event and (self.remaining > self.number_agents or self.number_agents==1) :
-                r[i] += -1 #-self.params.K
+                r[i] += 0 #-1 #-self.params.K
             if self.remaining ==0:
                 r[i]+=5
             r[i] += self.params.repeated_field_reward

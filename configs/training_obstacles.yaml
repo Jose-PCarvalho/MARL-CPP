@@ -14,7 +14,7 @@ env1:
   starting_position_corner : false
   starting_position_random : true
   map_config : 'empty'
-  random_coverage : true
+  random_coverage : false
   dataset_path: 'empty'
   load_state: false
   load_random: false
@@ -36,7 +36,7 @@ env2:
   starting_position_corner : false
   starting_position_random : true
   map_config : 'empty'
-  random_coverage : true
+  random_coverage : false
   dataset_path: 'empty'
   load_state: false
   load_random: false

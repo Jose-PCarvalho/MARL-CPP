@@ -1,7 +1,7 @@
 seed: 0
 
 env:
-  max_steps: 100
+  max_steps: 1000
   scenario_name: "balance"
   scenario:
     n_agents: 3
@@ -12,8 +12,8 @@ model:
   shared_parameters: True
 
 collector:
-  frames_per_batch: 60_000 # Frames sampled each sampling iteration
-  n_iters: 500 # Number of sampling/training iterations
+  frames_per_batch: 4 # Frames sampled each sampling iteration
+  n_iters: 200000 # Number of sampling/training iterations
   total_frames: ???
 
 buffer:
@@ -21,21 +21,21 @@ buffer:
 
 loss:
   mixer_type: "qmix"  # or "vdn"
-  gamma: 0.9
+  gamma: 0.99
   tau: 0.005 # For target net
 
 train:
-  num_epochs: 45  # optimization steps per batch of data collected
-  minibatch_size: 4096 # size of minibatches used in each epoch
-  lr: 5e-5
+  num_epochs: 1  # optimization steps per batch of data collected
+  minibatch_size: 32 # size of minibatches used in each epoch
+  lr: 1e-5
   max_grad_norm: 40.0
   device: ???
 
 eval:
-  evaluation_interval: 20
-  evaluation_episodes: 200
+  evaluation_interval: 10000
+  evaluation_episodes: 1
 
 logger:
   backend: wandb # Delete to remove logging
-  project_name: null
+  project_name: qmix
   group_name: null

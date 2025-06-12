@@ -8,6 +8,9 @@ import pickle
 import numpy as np
 import torch
 import yaml
+from torch.nn import Sequential, Flatten
+from torchrl.envs import TransformedEnv, RewardSum
+from torchrl.modules import MultiAgentConvNet, MultiAgentMLP
 from tqdm import trange
 from src.Environment.Environment import *
 from src.Rainbow.agent import *
@@ -42,6 +45,10 @@ env = Environment(EnvironmentParams(conf['env1']))
 
 torchrl_env = TorchRLEnvironmentWrapper(env)
 
+
+
+
+
 # Reset environment
 td = torchrl_env.reset()
 print("Initial Observation:", td)
@@ -64,7 +71,39 @@ for step in range(5):
         print("Episode finished.")
         break
 
-
+torchrl_env.env.rendering=False
 td = torchrl_env.rollout(10000)
+print(torchrl_env.env.rewards.cumulative_reward)
 td=torch.zeros_like(td)
-print(td)
+#print(td)
+
+
+n, F, C, H, W = torchrl_env.observation_spec[('agents', 'observation')].shape
+obs_shape = F * C * H * W
+act_spec = torchrl_env.action_spec[('agents', 'action')]
+act_dim = act_spec.n
+
+test = np.zeros(torchrl_env.observation_spec[('agents', 'observation')].shape)
+test = torch.tensor(test, dtype=torch.float32)
+conv_net = MultiAgentConvNet(
+    n,
+    in_features=12,
+    num_cells=[32, 64, 64],
+    kernel_sizes=[3, 3, 3],
+    strides=[1, 2, 2],
+    paddings=[1, 1, 1],
+    share_params=True,
+    activation_class= torch.nn.ReLU,
+    centralized=False,
+)
+mlp = MultiAgentMLP(n_agent_inputs=7744,
+                    n_agent_outputs=5,
+                    n_agents=n,
+                    share_params=True,
+                    centralized= False,
+                    depth=2,
+                    num_cells=256)
+net = Sequential(Flatten(start_dim=-4,end_dim=-3),conv_net)
+net = Sequential(net,mlp)
+test = net(test)
+print(test)
