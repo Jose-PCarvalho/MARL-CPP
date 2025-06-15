@@ -24,7 +24,7 @@ env2:
   name: "env2"
   base_steps: 2000000
   number_agents: 2
-  random_number_agents : true
+  random_number_agents : false
   sensor: "full information"
   sensor_range: 3
   size: 10
@@ -46,7 +46,7 @@ env3:
   name: "env3"
   base_steps: 2000000
   number_agents: 2
-  random_number_agents : true
+  random_number_agents : false
   sensor: "full information"
   sensor_range: 3
   size: 15
@@ -68,7 +68,7 @@ env4:
   name: "env4"
   base_steps: 2000000
   number_agents: 2
-  random_number_agents : true
+  random_number_agents : false
   sensor: "full information"
   sensor_range: 3
   size: 19
@@ -90,7 +90,7 @@ env5:
   name: "env5"
   base_steps: 4000000
   number_agents: 2
-  random_number_agents : true
+  random_number_agents : false
   sensor: "full information"
   sensor_range: 4
   size: 25
@@ -112,7 +112,7 @@ env6:
   name: "env6"
   base_steps: 6000000
   number_agents: 2
-  random_number_agents : true
+  random_number_agents : false
   sensor: "full information"
   sensor_range: 4
   size: 30
@@ -134,7 +134,7 @@ env7:
   name: "env7"
   base_steps: 5000000
   number_agents: 2
-  random_number_agents : true
+  random_number_agents : false
   sensor: "full information"
   sensor_range: 4
   size: 40
