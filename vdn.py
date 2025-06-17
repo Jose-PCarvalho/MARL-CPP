@@ -58,7 +58,7 @@ def train(cfg: DictConfig):
 
     net = MyNet(n_agents=n,centralized=False,share_params=True,device=cfg.train.device)
     module = TensorDictModule(
-        net, in_keys=[("agents", "observation")], out_keys=[("agents", "action_value")])
+        net, in_keys=[("agents","observation"),("agents","t_to_go"),("agents","last_action"),("agents","out_of_bounds")], out_keys=[("agents", "action_value")])
 
     value_module = QValueModule(
         action_value_key=("agents", "action_value"),

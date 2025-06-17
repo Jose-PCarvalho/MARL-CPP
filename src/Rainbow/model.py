@@ -106,6 +106,8 @@ class QNetwork(nn.Module):
         super(QNetwork, self).__init__()
         self.action_space = 5
         self.flatten_input = Flatten(start_dim=-4, end_dim=-3)
+        self.flatten_o = Flatten(start_dim=-3,end_dim=-1)
+        self.flatten_a = Flatten(start_dim=-2,end_dim=-1)
         self.convs =  ConvNet(
             in_features=12,
             num_cells=[32, 64, 64],
@@ -123,14 +125,14 @@ class QNetwork(nn.Module):
         #self.fc_2_a = torchrl.modules.NoisyLinear(512, 512, std_init=0.5,device = device)
         #self.fc_3_v = torchrl.modules.NoisyLinear(512, 1, std_init=0.5,device = device)
         #self.fc_3_a = torchrl.modules.NoisyLinear(512, self.action_space, std_init=0.5,device = device)
-        self.value_head = MLP(in_features=7744,
+        self.value_head = MLP(in_features=7744+40,
                   out_features=1,
                   depth=3,
                   num_cells=512,
                   device=device,
                   activation_class=torch.nn.ReLU, )
         #self.value_head= Sequential(self.convs,self.value_head)
-        self.advantage_head = MLP(in_features=7744,
+        self.advantage_head = MLP(in_features=7744+40,
                    out_features=5,
                    depth=3,
                    num_cells=512,
@@ -147,14 +149,17 @@ class QNetwork(nn.Module):
         #b = b.view(-1, 1)
         #a = a.view(a.size(0), -1)
         #o = o.view(o.size(0), -1)
-        x = self.flatten_input(x)
-        x = self.convs(x)
+        s,b,a,o = x
+        s = self.flatten_input(s)
+        x = self.convs(s)
         #x = x.view(x.size(0), -1)
-        #x = torch.cat((x, b), 1)
-        #x = torch.cat((x, a), 1)
-        #x = torch.cat((x, o), 1)
-        v = self.value_head(x)#self.fc_3_v(F.relu(self.fc_2_v(F.relu(self.fc_1_v(x))))) # Value stream
-        a = self.advantage_head(x)#self.fc_3_a(F.relu(self.fc_2_a(F.relu(self.fc_1_a(x)))))  # Advantage stream
+        x = torch.cat((x, b), -1)
+        a= self.flatten_a(a)
+        x = torch.cat((x, a), -1)
+        o = self.flatten_o(o)
+        x = torch.cat((x, o), -1)
+        v = self.value_head(x)
+        a = self.advantage_head(x)
 
         q = v + a - a.mean(-1, keepdim=True)  # Combine streams
         return q
@@ -212,6 +217,7 @@ class MyNet(MultiAgentNetBase):
         return QNetwork(device=device)
 
     def _pre_forward_check(self, inputs):
+        return inputs
         if len(inputs.shape) < 4:
             raise ValueError(
                 """Multi-agent network expects (*batch_size, agent_index, x, y, channels)"""
@@ -225,3 +231,42 @@ class MyNet(MultiAgentNetBase):
                 f"""NOT IMPLEMENTED"""
             )
         return inputs
+
+    def forward(self, *inputs: tuple[torch.Tensor]) -> torch.Tensor:
+        inputs = self._pre_forward_check(inputs)
+        # If parameters are not shared, each agent has its own network
+        if not self.share_params:
+            if self.centralized:
+                output = self.vmap_func_module(
+                    self._empty_net, (0, None), (-2,), randomness=self.vmap_randomness
+                )(self.params, inputs)
+            else:
+                output = self.vmap_func_module(
+                    self._empty_net,
+                    (0, self.agent_dim),
+                    (-2,),
+                    randomness=self.vmap_randomness,
+                )(self.params, inputs)
+
+        # If parameters are shared, agents use the same network
+        else:
+            with self.params.to_module(self._empty_net):
+                output = self._empty_net(inputs)
+
+            if self.centralized:
+                # If the parameters are shared, and it is centralized, all agents will have the same output
+                # We expand it to maintain the agent dimension, but values will be the same for all agents
+                n_agent_outputs = output.shape[-1]
+                output = output.view(*output.shape[:-1], n_agent_outputs)
+                output = output.unsqueeze(-2)
+                output = output.expand(
+                    *output.shape[:-2], self.n_agents, n_agent_outputs
+                )
+
+        if output.shape[-2] != (self.n_agents):
+            raise ValueError(
+                f"Multi-agent network expected output with shape[-2]={self.n_agents}"
+                f" but got {output.shape}"
+            )
+
+        return output

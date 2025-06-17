@@ -42,15 +42,15 @@ class TorchRLEnvironmentWrapper(EnvBase):
 
     def build_tensordict(self, obs, info, reward=None, terminated=None, truncated=None):
         state_array, t_to_go, last_action, out_of_bounds = obs
-
+        last_action = torch.nn.functional.one_hot(torch.tensor(last_action,dtype=torch.int64),5)
         n = self.env.params.max_number_agents
         td = TensorDict({})
         # per-agent observations
         agents_td =TensorDict({},batch_size=[n])
         agents_td.set(("observation"), torch.tensor(state_array, dtype=torch.float32))
-        #td.set(("agents", "t_to_go"), torch.tensor(t_to_go, dtype=torch.float32))
-        #td.set(("agents", "last_action"), torch.tensor(last_action, dtype=torch.int64))
-        #td.set(("agents", "out_of_bounds"), torch.tensor(out_of_bounds, dtype=torch.float32))
+        agents_td.set(("t_to_go"), torch.tensor(np.array(t_to_go).reshape((2,1)), dtype=torch.float32))
+        agents_td.set(("last_action"), last_action)
+        agents_td.set(("out_of_bounds"), torch.tensor(out_of_bounds, dtype=torch.float32))
         if reward is not None:
             agents_td.set(("reward"), torch.tensor(np.array(reward), dtype=torch.float32))
 
@@ -66,16 +66,25 @@ class TorchRLEnvironmentWrapper(EnvBase):
         return td.to(self.device)
 
     def _make_observation_spec(self):
-        # 1) grab one reset to infer shapes
         obs, _ = self.env.reset(training=False)
-        #    obs[0] has shape [n_agents, F, C, H, W]
-        state_array = obs[0]
+        state_array, t_to_go, last_action, out_of_bounds = obs
         n, F, C, H, W = state_array.shape
         observation_specs = []
+        reward_specs = []
+        last_action_specs = []
+        out_of_bounds_specs = []
         for i in range(n):
             observation_specs.append(Unbounded(shape=(F,C,H,W),dtype=torch.float32))
+            reward_specs.append(Unbounded(dtype=torch.float32))
+            last_action_specs.append(Unbounded(shape=(3,5),dtype=torch.int64))
+            out_of_bounds_specs.append(Unbounded(shape=(out_of_bounds.shape[-3],out_of_bounds.shape[-2],out_of_bounds.shape[-1]),dtype=torch.float32))
 
-        observation_spec = Composite({"agents": Composite({"observation": torch.stack(observation_specs)}, shape = (n,))})
+        observation_spec = Composite({"agents": Composite({"observation": torch.stack(observation_specs),
+                                                           "t_to_go": torch.stack(reward_specs),
+                                                           "last_action": torch.stack(last_action_specs),
+                                                           "out_of_bounds": torch.stack(out_of_bounds_specs),
+                                                           },
+                                                          shape = (n,))})
         return observation_spec
 
 
