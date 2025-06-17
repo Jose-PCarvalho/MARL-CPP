@@ -22,9 +22,10 @@ from hydra.utils import to_absolute_path
 
 from src.Environment.TorchRLWrapper import *
 from src.Environment.Environment import *
+from src.Rainbow.model import MyNet
 
 
-@hydra.main(version_base="1.1", config_path="configs", config_name="qmix_vdn")
+@hydra.main(version_base="1.1", config_path="configs", config_name="vdn")
 def train(cfg: DictConfig):
     sys.setrecursionlimit(10000)
     # device setup
@@ -55,29 +56,7 @@ def train(cfg: DictConfig):
     n, F, C, H, W = env.observation_spec[('agents','observation')].shape
     act_spec = env.action_spec[('agents','action')]
 
-    conv_net = MultiAgentConvNet(
-        n,
-        in_features=12,
-        num_cells=[32, 64, 64],
-        kernel_sizes=[3, 3, 3],
-        strides=[1, 2, 2],
-        paddings=[1, 1, 1],
-        share_params=True,
-        activation_class=torch.nn.ReLU,
-        centralized=False,
-        device=cfg.train.device
-    )
-    mlp = MultiAgentMLP(n_agent_inputs=7744,
-                        n_agent_outputs=5,
-                        n_agents=n,
-                        share_params=True,
-                        centralized=False,
-                        depth=3,
-                        num_cells=256,
-                        device=cfg.train.device,
-                        activation_class=torch.nn.ReLU,)
-    net = Sequential(Flatten(start_dim=-4, end_dim=-3), conv_net)
-    net = Sequential(net, mlp)
+    net = MyNet(n_agents=n,centralized=False,share_params=True,device=cfg.train.device)
     module = TensorDictModule(
         net, in_keys=[("agents", "observation")], out_keys=[("agents", "action_value")])
 
