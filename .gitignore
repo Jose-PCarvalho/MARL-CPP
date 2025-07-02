@@ -9,7 +9,7 @@ __pycache__/
 *.html
 outputs/
 wandb/
-
+.hydra/
 # Ignore all .pth files
 *.pth
 *.pkl
