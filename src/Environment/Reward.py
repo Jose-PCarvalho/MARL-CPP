@@ -63,10 +63,11 @@ class GridRewards:
             if Events.NEW in event:
                 r[i] += (1-self.params.K)*self.params.new_tile_reward if self.params.SI and self.number_agents >1 else self.params.new_tile_reward
                 self.stuck[i] = 0
+            else:
                 self.overlap[i] += 1
                 self.stuck[i] += 1
             if Events.BLOCKED in event:
-                r[i] += 0 #self.params.blocked_reward
+                r[i] += self.params.blocked_reward
             if Events.WAITED in event and (self.remaining > self.number_agents or self.number_agents==1) :
                 r[i] += 0 #-1 #-self.params.K
             if self.remaining ==0:

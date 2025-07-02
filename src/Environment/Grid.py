@@ -155,6 +155,37 @@ class GridMap:
         self.map_array[3, old_position[0], old_position[1]] = 0
         self.map_array[3, new_position[0], new_position[1]] = 255
 
+    def padded_map(self):
+
+        # Example input of shape (4, n, n)
+        n = self.map_array.shape[-1]
+        x = self.map_array
+
+        # Target size
+        target_size = 40
+        pad = target_size - n
+        if pad<=0:
+            return np.zeros(shape=(4,40,40))
+
+        # Center padding (can be changed)
+        pad_top = pad // 2
+        pad_bottom = pad - pad_top
+        pad_left = pad // 2
+        pad_right = pad - pad_left
+
+        # Desired padding value per pixel: [0, 1, 0, 0]
+        pad_value = np.array([0, 255, 0, 0], dtype=x.dtype).reshape(4, 1, 1)
+
+        # Initialize output with padding value
+        out = np.tile(pad_value, (1, 40, 40))
+
+        # Insert original array
+        out[:, pad_top:pad_top + n, pad_left:pad_left + n] = x
+
+
+
+        return out/255
+
     def center_map(self, position):
         new_size = max(37, max(self.height, self.width) * 2 - 1)
         # calculate the center index of the new array

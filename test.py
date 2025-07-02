@@ -9,7 +9,7 @@ from src.Environment.Environment import *
 
 
 # Test DQN
-def test(args, T, dqn, val_mem, metrics, results_dir, env_args, evaluate=False):
+def test(args, T, dqn, val_mem, metrics, results_dir, env_args,eps, evaluate=False):
     env_args['random_coverage'] = False
     env_args['random_size'] = False
     env_args['dataset_path'] = 'empty'

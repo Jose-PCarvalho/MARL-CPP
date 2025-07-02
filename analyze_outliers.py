@@ -9,7 +9,7 @@ def load_memory(memory_path):
 def load_data(path):
     T_overlaps = []
     # Load data for each k value
-    T_overlaps.append(load_memory('stats/' + path + '/timesave.pkl'))
+    T_overlaps.append(load_memory(path))
     T_overlaps_selected = []
     for T_overlap in T_overlaps:
         T_overlap_selected = [T_overlap[i] for i in range(5, 46)]
@@ -20,8 +20,8 @@ def load_data(path):
 map_sizes = list(range(10, 51))
 
 # Load data for "No AM"
-meu_overlap_no_am = load_data('No AM')
-meu_overlap_si_k = load_data('SI K=0.25')
+meu_overlap_no_am = load_data('stats/vdn_no_am/timesave.pkl')
+meu_overlap_si_k = load_data('stats/vdn_2/timesave.pkl')
 
 # Initialize comparison counts
 comparison_count = 0
@@ -31,19 +31,21 @@ total_comparisons = 0
 for no_am, si_k in zip(meu_overlap_no_am, meu_overlap_si_k):
     for no_am_val, si_k_val in zip(no_am, si_k):
         total_comparisons += 1
-        if no_am_val == si_k_val:
+        if no_am_val < si_k_val:
             comparison_count += 1
 
 # Calculate the percentage where "No AM" < "SI K=0.25"
 percentage_no_am_less_si_k = (comparison_count / total_comparisons) * 100
 
 # Print results
+print(np.max(np.array(meu_overlap_si_k)))
+print(f"Median values: {np.median(np.array(meu_overlap_si_k)),np.median(np.array(meu_overlap_no_am))}")
 print(f"Total Comparisons: {total_comparisons}")
 print(f"'No AM' < 'SI K=0.25' Episodes: {comparison_count}")
 print(f"Percentage of Episodes where 'No AM' < 'SI K=0.25': {percentage_no_am_less_si_k:.2f}%")
 
-outliers_no_am = [sum(1 for value in sublist if value > 0.70) for sublist in meu_overlap_no_am]
-unfinished_no_am = [50 - len(sublist) for sublist in meu_overlap_no_am]
+outliers_no_am = [sum(1 for value in sublist if 0.70 < value < 4.9) for sublist in meu_overlap_no_am]
+unfinished_no_am = load_data('stats/vdn_no_am/not_finished.pkl')
 
 # Calculate percentages
 total_points = 50 * len(map_sizes)  # Total tasks (50 per map size)

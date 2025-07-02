@@ -22,12 +22,13 @@ class TorchRLEnvironmentWrapper(EnvBase):
         self.action_spec = self._make_action_spec()
         self.reward_spec = self._make_reward_spec()
         self.done_spec = Categorical(n = 2,shape = torch.Size((1,)),dtype = torch.bool,)
+        self.state_spec = self._make_state_spec()
         #self._batch_size = torch.Size([])  # single environment, not vectorized
         self.device = torch.device('cuda:0')
 
 
-    def _reset(self, tensordict=None):
-        obs, info = self.env.reset(training=True)
+    def _reset(self, tensordict=None,training=True):
+        obs, info = self.env.reset(training=training)
         return self.build_tensordict(obs, info)
 
     def _step(self, tensordict):
@@ -40,7 +41,8 @@ class TorchRLEnvironmentWrapper(EnvBase):
         np.random.seed(seed)
         torch.manual_seed(seed)
 
-    def build_tensordict(self, obs, info, reward=None, terminated=None, truncated=None):
+    def build_tensordict(self, obs, info, reward=None, terminated=None, truncated=None,state=None):
+
         state_array, t_to_go, last_action, out_of_bounds = obs
         last_action = torch.nn.functional.one_hot(torch.tensor(last_action,dtype=torch.int64),5)
         n = self.env.params.max_number_agents
@@ -48,9 +50,12 @@ class TorchRLEnvironmentWrapper(EnvBase):
         # per-agent observations
         agents_td =TensorDict({},batch_size=[n])
         agents_td.set(("observation"), torch.tensor(state_array, dtype=torch.float32))
-        agents_td.set(("t_to_go"), torch.tensor(np.array(t_to_go).reshape((2,1)), dtype=torch.float32))
+        agents_td.set(("t_to_go"), torch.tensor(np.array(t_to_go).reshape((n,1)), dtype=torch.float32))
         agents_td.set(("last_action"), last_action)
         agents_td.set(("out_of_bounds"), torch.tensor(out_of_bounds, dtype=torch.float32))
+        state = self.env.state.global_map.padded_map()
+        td.set(("state"), torch.tensor(state,dtype=torch.float32))
+
         if reward is not None:
             agents_td.set(("reward"), torch.tensor(np.array(reward), dtype=torch.float32))
 
@@ -79,12 +84,15 @@ class TorchRLEnvironmentWrapper(EnvBase):
             last_action_specs.append(Unbounded(shape=(3,5),dtype=torch.int64))
             out_of_bounds_specs.append(Unbounded(shape=(out_of_bounds.shape[-3],out_of_bounds.shape[-2],out_of_bounds.shape[-1]),dtype=torch.float32))
 
-        observation_spec = Composite({"agents": Composite({"observation": torch.stack(observation_specs),
-                                                           "t_to_go": torch.stack(reward_specs),
-                                                           "last_action": torch.stack(last_action_specs),
-                                                           "out_of_bounds": torch.stack(out_of_bounds_specs),
-                                                           },
-                                                          shape = (n,))})
+        observation_spec = Composite({
+            "agents": Composite({
+                "observation": torch.stack(observation_specs),
+                "t_to_go": torch.stack(reward_specs),
+                "last_action": torch.stack(last_action_specs),
+                "out_of_bounds": torch.stack(out_of_bounds_specs),
+            }, shape=(n,)),
+            "state": Unbounded(shape=(4, 40, 40), dtype=torch.float32)
+        })
         return observation_spec
 
 
@@ -114,3 +122,5 @@ class TorchRLEnvironmentWrapper(EnvBase):
         reward_spec = Composite({"agents": Composite({"reward": torch.stack(reward_specs)},shape=(n,))})
         return reward_spec
 
+    def _make_state_spec(self):
+        return Composite({"state": Unbounded(shape=(4,40,40),dtype=torch.float32)})

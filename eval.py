@@ -124,18 +124,18 @@ if args.log_file:
         pass
 
 T_overlap, not_finished,T_timesave = [[] for _ in range(51)], [0 for _ in range(51)],[[] for _ in range(51)]
-
 env_args = conf['env1']
 for n in range(2,3):
     for size in range(10, 51):
         print(size)
-        env_args['dataset_path'] = 'maps/datasets/multi_agent0%/' + str(n) + '_' + str(size) + '.pth'
+        env_args['dataset_path'] = 'maps/datasets/multi_agent5%/' + str(n) + '_' + str(size) + '.pth'
         env = Environment(EnvironmentParams(env_args))
         action_space = env.action_space()
         dqn = Agent(args, action_space)
         done = True
         truncated = False
         dqn.eval()
+        #args.render = True
         for t in range(50):
             while True:
                 if done or truncated:
@@ -174,7 +174,7 @@ for n in range(2,3):
                     break
 
     print(not_finished)
-    path = "stats/"+ "0% obstacles"
+    path = "stats/"+ "test5"
     Path(path).mkdir(exist_ok=True)
     save_memory(T_overlap, path+'/overlap.pkl')
     save_memory(T_timesave, path+'/timesave.pkl')

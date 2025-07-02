@@ -1,5 +1,6 @@
 from __future__ import division
 import math
+from functools import partial
 from typing import Sequence
 
 import torch
@@ -9,53 +10,66 @@ from torch.nn import functional as F, Sequential, Flatten
 import numpy as np
 from torch import nn
 from torchrl.data.utils import DEVICE_TYPING
-from torchrl.modules import MultiAgentNetBase
+from torchrl.modules import MultiAgentNetBase, NoisyLazyLinear
 from torchrl.modules.models import ConvNet, MLP
 from torchrl.modules.models.utils import _reset_parameters_recursive
 
 
 
 # Factorised NoisyLinear layer with bias
+
 class NoisyLinear(nn.Module):
-    def __init__(self, in_features, out_features, std_init=0.5, device = 'cuda:0'):
-        self.device = device
-        super(NoisyLinear, self).__init__()
+    def __init__(self, in_features, out_features, std_init=0.5,bias=None):
+        super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.std_init = std_init
-        self.weight_mu = nn.Parameter(torch.empty(out_features, in_features,device=device))
-        self.weight_sigma = nn.Parameter(torch.empty(out_features, in_features,device=device))
-        self.register_buffer('weight_epsilon', torch.empty(out_features, in_features))
-        self.bias_mu = nn.Parameter(torch.empty(out_features,device=device))
-        self.bias_sigma = nn.Parameter(torch.empty(out_features,device=device))
-        self.register_buffer('bias_epsilon', torch.empty(out_features))
-        self.reset_parameters()
-        self.reset_noise()
 
+        self.weight_mu = nn.Parameter(torch.empty(out_features, in_features))
+        self.weight_sigma = nn.Parameter(torch.empty(out_features, in_features))
+        self.bias_mu = nn.Parameter(torch.empty(out_features))
+        self.bias_sigma = nn.Parameter(torch.empty(out_features))
+
+        # Register static buffers — do not dynamically assign
+        self.register_buffer("weight_epsilon", torch.zeros(out_features, in_features))
+        self.register_buffer("bias_epsilon", torch.zeros(out_features))
+
+        self.reset_parameters()
+
+    @property
+    def is_meta(self):
+        return self.weight_mu.device.type == "meta"
 
     def reset_parameters(self):
         mu_range = 1 / math.sqrt(self.in_features)
-        self.weight_mu.data.uniform_(-mu_range, mu_range)
-        self.weight_sigma.data.fill_(self.std_init / math.sqrt(self.in_features))
-        self.bias_mu.data.uniform_(-mu_range, mu_range)
-        self.bias_sigma.data.fill_(self.std_init / math.sqrt(self.out_features))
+        with torch.no_grad():
+            self.weight_mu.uniform_(-mu_range, mu_range)
+            self.weight_sigma.fill_(self.std_init / math.sqrt(self.in_features))
+            self.bias_mu.uniform_(-mu_range, mu_range)
+            self.bias_sigma.fill_(self.std_init / math.sqrt(self.out_features))
 
     def _scale_noise(self, size):
-        x = torch.randn(size, device=self.weight_mu.device)
-        return x.sign().mul_(x.abs().sqrt_())
+        return torch.randn(size, device=self.weight_mu.device).sign().mul_(
+            torch.randn(size, device=self.weight_mu.device).abs().sqrt_()
+        )
 
     def reset_noise(self):
-        epsilon_in = self._scale_noise(self.in_features)
-        epsilon_out = self._scale_noise(self.out_features)
-        self.weight_epsilon.copy_(epsilon_out.ger(epsilon_in))
-        self.bias_epsilon.copy_(epsilon_out)
+        if self.is_meta:
+            return
+        with torch.no_grad():
+            eps_in = self._scale_noise(self.in_features)
+            eps_out = self._scale_noise(self.out_features)
+            self.weight_epsilon.copy_(torch.ger(eps_out, eps_in))
+            self.bias_epsilon.copy_(eps_out)
 
     def forward(self, input):
         if self.training:
-            return F.linear(input, self.weight_mu + self.weight_sigma * self.weight_epsilon,
-                            self.bias_mu + self.bias_sigma * self.bias_epsilon)
+            weight = self.weight_mu + self.weight_sigma * self.weight_epsilon
+            bias = self.bias_mu + self.bias_sigma * self.bias_epsilon
         else:
-            return F.linear(input, self.weight_mu, self.bias_mu)
+            weight = self.weight_mu
+            bias = self.bias_mu
+        return F.linear(input, weight, bias)
 
 
 class DQN(nn.Module):
@@ -130,14 +144,17 @@ class QNetwork(nn.Module):
                   depth=3,
                   num_cells=512,
                   device=device,
-                  activation_class=torch.nn.ReLU, )
-        #self.value_head= Sequential(self.convs,self.value_head)
+                  activation_class=torch.nn.ReLU,
+         #         layer_class=torchrl.modules.NoisyLinear
+                                      )# fix the bias value here
+        #       #self.value_head= Sequential(self.convs,self.value_head)
         self.advantage_head = MLP(in_features=7744+40,
                    out_features=5,
                    depth=3,
                    num_cells=512,
                    device=device,
-                   activation_class=torch.nn.ReLU, )
+                   activation_class=torch.nn.ReLU,)
+        #           layer_class=torchrl.modules.NoisyLinear   )
         #self.advantage_head = Sequential(self.convs, self.advantage_head)
 
 
@@ -146,13 +163,9 @@ class QNetwork(nn.Module):
         return int(np.prod(o.size()))
 
     def forward(self, x):
-        #b = b.view(-1, 1)
-        #a = a.view(a.size(0), -1)
-        #o = o.view(o.size(0), -1)
         s,b,a,o = x
         s = self.flatten_input(s)
         x = self.convs(s)
-        #x = x.view(x.size(0), -1)
         x = torch.cat((x, b), -1)
         a= self.flatten_a(a)
         x = torch.cat((x, a), -1)
@@ -160,13 +173,12 @@ class QNetwork(nn.Module):
         x = torch.cat((x, o), -1)
         v = self.value_head(x)
         a = self.advantage_head(x)
-
         q = v + a - a.mean(-1, keepdim=True)  # Combine streams
         return q
 
     def reset_noise(self):
         for name, module in self.named_children():
-            if 'fc' in name:
+            if 'head' in name:
                 module.reset_noise()
 
 
@@ -195,26 +207,10 @@ class MyNet(MultiAgentNetBase):
             **kwargs,
         )
 
-    def _build_single_net(self, *, device, **kwargs):
-        conv_net =  ConvNet(
-            in_features=12,
-            num_cells=[32, 64, 64],
-            kernel_sizes=[3, 3, 3],
-            strides=[1, 2, 2],
-            paddings=[1, 1, 1],
-            activation_class=torch.nn.ReLU,
-            device=device,
-            **kwargs,
-        )
-        mlp = MLP(in_features=7744,
-                           out_features=5,
-                            depth=3,
-                            num_cells=256,
-                            device=device,
-                            activation_class=torch.nn.ReLU, )
-        net = Sequential(Flatten(start_dim=-4, end_dim=-3), conv_net)
-        net = Sequential(net, mlp)
-        return QNetwork(device=device)
+    def _build_single_net(self,device,**kwargs):
+
+
+        return QNetwork(device)
 
     def _pre_forward_check(self, inputs):
         return inputs

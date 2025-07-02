@@ -52,7 +52,7 @@ parser.add_argument('--atoms', type=int, default=51, metavar='C', help='Discreti
 parser.add_argument('--V-min', type=float, default=-625, metavar='V', help='Minimum of value distribution support')
 parser.add_argument('--V-max', type=float, default=625, metavar='V', help='Maximum of value distribution support')
 parser.add_argument('--model', type=str, metavar='PARAMS', help='Pretrained model (state dict)')
-parser.add_argument('--memory-capacity', type=int, default=int(1e5), metavar='CAPACITY',
+parser.add_argument('--memory-capacity', type=int, default=int(4e5), metavar='CAPACITY',
                     help='Experience replay memory capacity')
 parser.add_argument('--replay-frequency', type=int, default=4, metavar='k', help='Frequency of sampling from memory')
 parser.add_argument('--priority-exponent', type=float, default=0.5, metavar='ω',
@@ -64,11 +64,11 @@ parser.add_argument('--discount', type=float, default=0.999, metavar='γ', help=
 parser.add_argument('--target-update', type=int, default=int(8e3), metavar='τ',
                     help='Number of steps after which to update target network')
 parser.add_argument('--reward-clip', type=int, default=1, metavar='VALUE', help='Reward clipping (0 to disable)')
-parser.add_argument('--learning-rate', type=float, default=0.00005, metavar='η', help='Learning rate')
+parser.add_argument('--learning-rate', type=float, default=1e-5, metavar='η', help='Learning rate')
 parser.add_argument('--adam-eps', type=float, default=0.000156, metavar='ε', help='Adam epsilon')
 parser.add_argument('--batch-size', type=int, default=32, metavar='SIZE', help='Batch size')
-parser.add_argument('--norm-clip', type=float, default=2.5, metavar='NORM', help='Max L2 norm for gradient clipping')
-parser.add_argument('--learn-start', type=int, default=int(2e3), metavar='STEPS',
+parser.add_argument('--norm-clip', type=float, default=40.0, metavar='NORM', help='Max L2 norm for gradient clipping')
+parser.add_argument('--learn-start', type=int, default=int(80e3), metavar='STEPS',
                     help='Number of steps before starting training')
 parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
 parser.add_argument('--evaluation-interval', type=int, default=50000, metavar='STEPS',
@@ -88,7 +88,7 @@ parser.add_argument('--disable-bzip-memory', action='store_true',
 parser.add_argument('--config-file', type=str, default='configs/training_obstacles.yaml')
 parser.add_argument('--log-file', type=str, default='results/log.txt')
 parser.add_argument('--starting-environment', type=int, default=1)
-parser.add_argument('--tau', type=float, default=0.001)
+parser.add_argument('--tau', type=float, default=0.005)
 
 # Setup
 args = parser.parse_args()
@@ -121,7 +121,7 @@ number_envs = len(conf.keys())
 env = Environment(EnvironmentParams(conf['env1']))
 action_space = env.action_space()
 starting_priority_weight = args.priority_weight
-dqn = Agent(args, action_space)
+dqn = NotNoisyAgent(args,action_space)#Agent(args, action_space)
 mem = ReplayMemory(args, args.memory_capacity)
 avg_overlap = 0
 retries = 0
@@ -140,6 +140,9 @@ while e < number_envs + 1:
     all_T += T
     T, done, truncated = 0, True, True
     avg_overlap = 1
+    eps = 0.8
+    eps_min = 0.05
+    eps_decay = (eps-eps_min)/(args.T_max/2)
     while T < args.evaluation_size:
         if done or truncated:
             state, info = env.reset()
@@ -154,7 +157,7 @@ while e < number_envs + 1:
 
     if args.evaluate:
         dqn.eval()  # Set DQN (online network) to evaluation mode
-        avg_reward, avg_Q, avg_overlap, avg_time_save = test(args, 0, dqn, val_mem, metrics, results_dir, evaluate=True,
+        avg_reward, avg_Q, avg_overlap, avg_time_save = test(args, 0, dqn, val_mem, metrics, results_dir,eps, evaluate=True,
                                               env_args=conf[env_str])  # Test
         print('Avg. reward: ' + str(avg_reward) + ' | Avg. Q: ' + str(avg_Q))
 
@@ -170,9 +173,12 @@ while e < number_envs + 1:
             if done or truncated:
                 last_truncated = truncated
                 state, info = env.reset()
-            if T % args.replay_frequency == 0:
-                dqn.reset_noise()  # Draw a new set of noisy weights
+            #if T % args.replay_frequency == 0:
+                #dqn.reset_noise()  # Draw a new set of noisy weights
             action = dqn.act(state[0], state[1],state[2], state[3])
+            for ag in range(state[0].shape[0]):
+                if np.random.random()<eps:
+                    action[ag] = random.choice([0,1,2,3,4])
             #info = env.filter(action,info)
             if (any(info)) and np.random.random() < 1:
                 ac = env.get_heuristic_action(info)
@@ -194,7 +200,7 @@ while e < number_envs + 1:
 
             # Train and test
             if T >= args.learn_start:
-
+                eps = max(eps - eps_decay, eps_min)
                 mem.priority_weight = min(mem.priority_weight + priority_weight_increase, 1)
 
                 if T % args.replay_frequency == 0:
@@ -203,10 +209,11 @@ while e < number_envs + 1:
                 if T % args.evaluation_interval == 0:
                     dqn.eval()  # Set DQN (online network) to evaluation mode
                     avg_reward, avg_Q, avg_overlap, avg_time_save = test(args, T + all_T, dqn, val_mem, metrics, results_dir,
-                                                          env_args=conf[env_str])  # Test
+                                                          env_args=conf[env_str],eps=eps)  # Test
                     log('T = ' + str(T) + ' / ' + str(args.T_max) + ' | env: ' + conf[env_str]['name'] +
                         ' | Avg. reward: ' + str(avg_reward) + ' | Avg. Q: ' + str(avg_Q) + ' | Avg. Overlap: ' + str(
                         avg_overlap) + ' | Avg. Time Save: ' + str(avg_time_save), args.log_file)
+                    print(eps)
                     dqn.train()  # Set DQN (online network) back to training mode
 
                     # If memory path provided, save it
@@ -222,6 +229,7 @@ while e < number_envs + 1:
                     dqn.save(results_dir, 'checkpoint.pth')
 
             state = next_state
+
 
         e += 1
         dqn.save(results_dir, conf[env_str]['name'] + '.pth')

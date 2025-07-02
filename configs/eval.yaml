@@ -1,0 +1,14 @@
+
+env:
+  device: ???
+
+model:
+  shared_parameters: True
+  pretrained_qnet_path: 'results/QMIX/env6_qnet_model.pth'
+  device: ???
+  #pretrained_mixer_path: 'models/mixer_model.pth'
+
+eval:
+  evaluation_interval: 10000
+  evaluation_episodes: 2
+  path: 'stats/qmix_5_'

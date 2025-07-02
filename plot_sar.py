@@ -39,8 +39,8 @@ def plot_median_for_maps_separate(maps, base_path="stats"):
 
         # Formatting
         ax.set_xlabel("Number of Agents")
-        ax.set_ylabel("Average Time Taken")
-        ax.set_title("Impact of Number of Agents on the Time Taken to Rescue")
+        ax.set_ylabel("Time Save Factor")
+        ax.set_title("Impact of Number of Agents on the Time Save Factor")
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.legend()
         ax.grid(True)
@@ -49,5 +49,5 @@ def plot_median_for_maps_separate(maps, base_path="stats"):
 
 
 # Example usage
-maps = ['map1', 'map2', 'map3', 'map4']
+maps = ['vdn_ood_map1', 'vdn_ood_map2', 'vdn_ood_map3', 'vdn_ood_map4']
 plot_median_for_maps_separate(maps)

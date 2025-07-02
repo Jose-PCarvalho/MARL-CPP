@@ -144,9 +144,9 @@ class Environment():
         oob = oob[:, :, :, 0:2]
         return (np.array(self.state.state_array), self.state.t_to_go, np.array(self.state.last_action), oob)
 
-    def get_info(self,Ks=6,K=8):
+    def get_info(self,Ks=8,K=8):
         if self.state.remaining <= self.state.params.number_agents:
-            return [True for i in range(self.state.params.number_agents)]
+            return [True for _ in range(self.state.params.number_agents)]
         small_stuck = [self.rewards.stuck[i] > Ks for i in range(self.state.params.number_agents)]
         stuck = [False for i in range(self.state.params.number_agents)]
         for i , s in enumerate(small_stuck):
@@ -182,9 +182,10 @@ class Environment():
                     self.paths[a] = self.state.local_map.dijkstra_search(self.state.position[a].get_position(),(self.heuristic_position[a][0],self.heuristic_position[a][1]))
 
         for a in range(self.state.params.number_agents):
-            if not info[a]:
+            if not info[a] or self.paths[a] == []:
                 actions[a] = None
                 continue
+
             diff = np.array(self.paths[a][0]) - np.array(self.state.position[a].get_position())
             diff = (diff[0], diff[1])
             if diff == (1, 0):

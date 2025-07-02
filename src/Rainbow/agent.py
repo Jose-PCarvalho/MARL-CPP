@@ -6,7 +6,7 @@ from torch import optim
 from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 
-from src.Rainbow.model import DQN
+from src.Rainbow.model import DQN, QNetwork
 
 
 class Agent:
@@ -122,3 +122,96 @@ class Agent:
         self.Vmax = 0
         self.support = torch.linspace(self.Vmin, self.Vmax, self.atoms).to(device=self.device)  # Support (range) of z
         self.delta_z = (self.Vmax - self.Vmin) / (self.atoms - 1)
+
+
+class NotNoisyAgent:
+    def __init__(self, args, action_space):
+        self.action_space = action_space
+        self.batch_size = args.batch_size
+        self.n = args.multi_step
+        self.discount = args.discount
+        self.norm_clip = args.norm_clip
+        self.tau = args.tau
+        self.device = args.device
+        self.online_net = QNetwork(args.device)
+
+        state_dict = torch.load(args.model,
+                                map_location='cpu')  # Always load tensors onto CPU by default, will shift to GPU if necessary
+        self.online_net.load_state_dict(state_dict)
+        print("Loading pretrained model: " + args.model)
+
+        self.online_net.train()
+        self.target_net = QNetwork(args.device)
+
+        self.hard_update()
+        self.target_net.train()
+
+        for param in self.target_net.parameters():
+            param.requires_grad = False
+
+        self.optimiser = optim.Adam(self.online_net.parameters(), lr=args.learning_rate, eps=args.adam_eps)
+
+    # Acts based on single state (no batch)
+    def act(self, state, battery, last_action, out_bounds):
+        with torch.no_grad():
+            # state = torch.tensor(state[-1], dtype=torch.float32, device='cuda')
+            state = torch.tensor(state, dtype=torch.float32, device=self.device)/255
+            battery = torch.tensor(battery, dtype=torch.int32, device=self.device).reshape((state.shape[-5],1))
+            last_action = F.one_hot(torch.tensor(last_action, dtype=torch.int64, device=self.device), 5)
+            out_bounds = torch.tensor(out_bounds, dtype=torch.int32, device=self.device)
+            value = self.online_net((state, battery, last_action, out_bounds))
+            return value.argmax(1).tolist()
+
+
+    def learn(self, mem):
+        # Sample transitions
+        idxs, states, actions, returns, next_states, nonterminals, weights, battery, next_battery, last_action, \
+        next_last_action, out_bounds, next_out_bounds = mem.sample(self.batch_size)
+
+        # Calculate current state probabilities (online network noise already sampled)
+        q_values = self.online_net((states, torch.reshape(battery,(self.batch_size,1)), F.one_hot(last_action, 5), out_bounds))
+        q_curr = q_values[range(self.batch_size), actions]
+        with torch.no_grad():
+            # Calculate nth next state probabilities
+            q_online_value = self.online_net((next_states, torch.reshape(next_battery,(self.batch_size,1)), F.one_hot(next_last_action, 5), next_out_bounds))
+            argmax_indices_ns = q_online_value.argmax(1)  #
+            #self.target_net.reset_noise()  # Sample new target net noise
+            q_target_values = self.target_net((next_states, torch.reshape(next_battery,(self.batch_size,1)), F.one_hot(next_last_action, 5), next_out_bounds))
+            q_target = q_target_values[range(self.batch_size), argmax_indices_ns]
+        q_target.detach()
+        target = returns + nonterminals * (self.discount ** self.n) * q_target
+        loss = F.smooth_l1_loss(q_curr, target, reduction="none")
+        self.online_net.zero_grad()
+        (weights * loss).mean().backward()  # Backpropagate importance-weighted minibatch loss
+        clip_grad_norm_(self.online_net.parameters(), self.norm_clip)  # Clip gradients by L2 norm
+        self.optimiser.step()
+        mem.update_priorities(idxs, loss.detach().cpu().numpy())  # Update priorities of sampled transitions
+
+    def update_target_net(self):
+        # self.target_net.load_state_dict(self.online_net.state_dict())
+        self.eval()
+        with torch.no_grad():
+            for target_param, local_param in zip(self.target_net.parameters(), self.online_net.parameters()):
+                target_param.data.copy_(self.tau * local_param.data + (1.0 - self.tau) * target_param.data)
+        self.train()
+
+    def hard_update(self):
+        self.target_net.load_state_dict(self.online_net.state_dict())
+
+    # Save model parameters on current device (don't move model between devices)
+    def save(self, path, name='model.pth'):
+        torch.save(self.online_net.state_dict(), os.path.join(path, name))
+
+    # Evaluates Q-value based on single state (no batch)
+    def evaluate_q(self, state, battery, last_action,out_bounds):
+        with torch.no_grad():
+            last_action = F.one_hot(last_action, 5)
+            return (self.online_net((state.unsqueeze(0), torch.reshape(battery.unsqueeze(0),(1,1)),
+                                    last_action.unsqueeze(0),out_bounds.unsqueeze(0)))).max(1)[0].item()
+
+    def train(self):
+        self.online_net.train()
+
+    def eval(self):
+        self.online_net.eval()
+

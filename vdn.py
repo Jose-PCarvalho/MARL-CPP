@@ -32,7 +32,7 @@ def train(cfg: DictConfig):
     cfg.train.device = "cpu" if not torch.cuda.device_count() else "cuda:0"
     cfg.env.device = cfg.train.device
     cfg.collector.total_frames = cfg.collector.frames_per_batch * cfg.collector.n_iters
-    cfg.buffer.memory_size = 50000 #cfg.collector.frames_per_batch
+    cfg.buffer.memory_size = 40000 #cfg.collector.frames_per_batch
 
     # initialize W&B
     wandb.init(
@@ -92,6 +92,16 @@ def train(cfg: DictConfig):
         in_keys=[("agents", "chosen_action_value")],
         out_keys=["chosen_action_value"],
     )
+    # mixer = TensorDictModule(
+    #     module=QMixer(
+    #         state_shape=env.state_spec_unbatched["state"].shape,
+    #         mixing_embed_dim=32,
+    #         n_agents=n,
+    #         device=cfg.train.device,
+    #     ),
+    #     in_keys=[("agents", "chosen_action_value"), "state"],
+    #     out_keys=["chosen_action_value"],
+    # )
     if getattr(cfg.train, 'pretrained_mixer_path', None):
         mix_path = to_absolute_path(cfg.train.pretrained_mixer_path)
         if os.path.isfile(mix_path):
@@ -135,11 +145,11 @@ def train(cfg: DictConfig):
         frames = conf[env_str]['base_steps']
         eps_init = 0.8
         if e>1:
-            eps_init = 0.2
+            eps_init = 0.8
         qnet_explore = TensorDictSequential(
             qnet,
             EGreedyModule(
-                eps_init=0.8, #eps_init
+                eps_init= eps_init,
                 eps_end=0.05,
                 annealing_num_steps=int(frames * (1 / 2)),
                 action_key=env.action_key,
@@ -147,6 +157,7 @@ def train(cfg: DictConfig):
                 device=cfg.env.device
             ),
         )
+
         collector = SyncDataCollector(env,
             qnet_explore,
             device=cfg.env.device,
